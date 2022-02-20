@@ -5,7 +5,11 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon server.ts",
-    "test": "cross-env NODE_ENV=test jest --verbose --runInBand --watchAll"
+    "seed": "npm exec npx ts-node ./db/createDb.ts",
+    "pretest": "npm run seed",
+    "test": "cross-env NODE_ENV=test jest --verbose --runInBand --watchAll",
+    "test:actions": "cross-env NODE_ENV=test jest --verbose --runInBand --forceExit",
+    "test:coverage": "cross-env NODE_ENV=test jest --verbose --runInBand --watchAll --coverage"
   },
   "keywords": [],
   "author": "",
