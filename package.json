@@ -2,7 +2,7 @@
   "name": "market_api",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
     "start": "nodemon server.ts",
     "seed": "npm exec npx ts-node ./db/createDb.ts",
@@ -15,6 +15,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.0.1",
     "dotenv": "^16.0.0",
     "express": "^4.17.3",
     "joi": "^17.6.0",
@@ -22,6 +23,8 @@
     "pg": "^8.7.3"
   },
   "devDependencies": {
+    "@ngneat/falso": "^2.26.1",
+    "@types/bcrypt": "^5.0.0",
     "@types/express": "^4.17.13",
     "@types/jest": "^27.4.0",
     "@types/node": "^17.0.18",

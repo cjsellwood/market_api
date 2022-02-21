@@ -1,7 +1,8 @@
-const pgtools = require("pgtools");
-import { Pool } from "pg";
 import dotenv from "dotenv";
 dotenv.config();
+const pgtools = require("pgtools");
+import { Pool } from "pg";
+import seed from "./seed"
 
 const config = {
   user: "postgres",
@@ -23,6 +24,7 @@ pgtools.createdb(config, "market_api", (err: Error, res: unknown) => {
   });
 
   const sqlConnection = async () => {
+    await seed(pool);
     await pool.end();
   };
 
