@@ -16,6 +16,8 @@ jobs:
       - run: npm install
 
       - name: Seed postgres database
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/market_api
         run: npm run seed
 
       - name: Jest tests
