@@ -6,7 +6,8 @@
   "scripts": {
     "start": "nodemon server.ts",
     "start:prod": "node build/server.js",
-    "build": "tsc && npm run seed",
+    "build": "tsc",
+    "heroku-postbuild": "npm exec npx ts-node ./db/herokuDb.ts",
     "seed": "npm exec npx ts-node ./db/createDb.ts",
     "pretest": "npm run seed",
     "test": "cross-env NODE_ENV=test jest --verbose --runInBand --watchAll",
