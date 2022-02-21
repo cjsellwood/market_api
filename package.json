@@ -7,7 +7,7 @@
     "start": "nodemon server.ts",
     "start:prod": "node build/server.js",
     "build": "tsc",
-    "heroku-postbuild": "npm exec npx ts-node ./db/herokuDb.ts",
+    "heroku-postbuild": "tsc && npm exec npx ts-node ./db/herokuDb.ts",
     "seed": "npm exec npx ts-node ./db/createDb.ts",
     "pretest": "npm run seed",
     "test": "cross-env NODE_ENV=test jest --verbose --runInBand --watchAll",
@@ -17,6 +17,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": "16.x"
+  },
   "dependencies": {
     "bcrypt": "^5.0.1",
     "dotenv": "^16.0.0",

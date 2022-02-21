@@ -32,9 +32,9 @@ Seed sql database
 
 ### npm run build
 
-Create js output production files. Also runs on heroku build
+Create js output production files
 
 ### npm run heroku-postbuild
 
-Seeds heroku postgresql database after installing dependencies
+Builds js output app and seeds heroku postgresql database after installing dependencies
 
