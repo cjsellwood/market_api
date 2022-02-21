@@ -26,11 +26,12 @@ const seed = async (pool: Pool) => {
   )`);
 
   // Generate default user data
+  const password = await bcrypt.hash("test", 12);
   const users = [
     {
       username: "test",
       email: "test@email.com",
-      password: await bcrypt.hash("test", 12),
+      password: password,
       joined: new Date(Date.now()),
     },
   ];
@@ -38,7 +39,7 @@ const seed = async (pool: Pool) => {
     users.push({
       username: randUserName(),
       email: randEmail(),
-      password: await bcrypt.hash(randPassword(), 12),
+      password: password,
       joined: randBetweenDate({ from: new Date("01/01/2022"), to: new Date() }),
     });
   }
@@ -69,8 +70,11 @@ const seed = async (pool: Pool) => {
     "Sports",
   ];
   for (let category of categories) {
-    await pool.query(`INSERT INTO category(name)
-      VALUES($1)`, [category]);
+    await pool.query(
+      `INSERT INTO category(name)
+      VALUES($1)`,
+      [category]
+    );
   }
 
   // Create product table

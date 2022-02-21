@@ -3,19 +3,38 @@
 Backend for market
 
 ### npm start
+
 Run development server
 
-### npm test
-Run tests locally
+### npm run start:prod
+
+Run production build 
 
 ### npm run pretest
+
 Create database for use in tests
 
+### npm test
+
+Run tests locally and run on changes
+
 ### npm run test:actions
+
 Runs tests once for github actions
 
 ### npm run test:coverage
-Runs test locally and show coverage
+
+Runs test once locally and show coverage
 
 ### npm run seed
+
 Seed sql database
+
+### npm run build
+
+Create js output production files
+
+### npm run heroku-postbuild
+
+Builds js output app and seeds heroku postgresql database after installing dependencies
+
