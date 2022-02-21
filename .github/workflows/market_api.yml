@@ -1,0 +1,26 @@
+name: market_api
+on: [pull_request]
+jobs:
+  app-testing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Start Postgresql
+        uses: harmon758/postgresql-action@v1
+        with:
+          postgresql version: "12"
+          postgresql user: postgres
+          postgresql password: password
+
+      - run: npm install
+
+      - name: Seed postgres database
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/market_api
+        run: npm run seed
+
+      - name: Jest tests
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/market_api
+        run: npm run test:actions
