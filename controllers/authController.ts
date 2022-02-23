@@ -38,3 +38,36 @@ export const registerUser = catchAsync(
     }
   }
 );
+
+export const loginUser = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { email, password } = req.body;
+
+    const user = await query(
+      `SELECT user_id, password FROM app_user WHERE email = $1`,
+      [email]
+    );
+
+    // Check if email exists
+    if (!user.rows.length) {
+      return next(new StatusError("Incorrect username or password", 400));
+    }
+
+    const userId = user.rows[0].user_id;
+    const hashedPassword = user.rows[0].password;
+
+    // Check password
+    const isValid = await compare(password, hashedPassword);
+    if (!isValid) {
+      return next(new StatusError("Incorrect username or password", 400));
+    }
+
+    const jwt = issueJWT(userId);
+
+    res.json({
+      userId,
+      token: jwt.token,
+      expiresIn: jwt.expiresIn,
+    });
+  }
+);

@@ -2,6 +2,7 @@ import supertest from "supertest";
 import { Pool } from "pg";
 import app from "../app";
 import seed from "../db/seed";
+import issueJWT from "../utils/issueJWT";
 
 const api = supertest(app);
 
@@ -194,7 +195,7 @@ describe("Auth routes testing", () => {
         .post("/auth/login")
         .send({
           email: "test@email.com",
-          password: "test",
+          password: "password",
         })
         .expect(200);
 
@@ -208,9 +209,56 @@ describe("Auth routes testing", () => {
         .post("/auth/login")
         .send({
           email: "test@email.com",
-          password: "incorrect",
+          password: "incorrectPassword",
         })
         .expect(400);
+
+      expect(res.body.error).toBe("Incorrect username or password");
+    });
+
+    test("Should not log user in if email does not exist", async () => {
+      const res = await api
+        .post("/auth/login")
+        .send({
+          email: "incorrect@email.com",
+          password: "password",
+        })
+        .expect(400);
+
+      expect(res.body.error).toBe("Incorrect username or password");
+    });
+
+    test("Should not log user in if no email", async () => {
+      const res = await api
+        .post("/auth/login")
+        .send({
+          password: "test",
+        })
+        .expect(400);
+
+      expect(res.body.error).toBe('"email" is required');
+    });
+
+    test("Should not log user in if no password", async () => {
+      const res = await api
+        .post("/auth/login")
+        .send({
+          email: "test@email.com",
+        })
+        .expect(400);
+
+      expect(res.body.error).toBe('"password" is required');
+    });
+  });
+
+  describe("Test a route only for logged in users", () => {
+    test.only("It should only return if user sends a valid jwt", async () => {
+      const jwt = issueJWT(1);
+      console.log(jwt);
+      const res = await api
+        .get("/auth/protected")
+        .send({ Authorization: jwt.token })
+        .expect(200);
     });
   });
 });
