@@ -25,7 +25,7 @@ export const registerUser = catchAsync(
         email,
         userId,
         token: jwt.token,
-        expiresIn: jwt.expiresIn,
+        expires: jwt.expires,
       });
     } catch (error) {
       const dbError = error as DatabaseError;
@@ -67,7 +67,13 @@ export const loginUser = catchAsync(
     res.json({
       userId,
       token: jwt.token,
-      expiresIn: jwt.expiresIn,
+      expires: jwt.expires,
     });
+  }
+);
+
+export const protectedRoute = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    res.json({ user_id: req.userId });
   }
 );

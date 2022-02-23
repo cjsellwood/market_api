@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { loginSchema, registerSchema } from "./joi";
-import StatusError from "./utils/StatusError";
+import StatusError from "../utils/StatusError";
 
 export const validateRegister = (
   req: Request,

@@ -3,6 +3,7 @@ import { Pool } from "pg";
 import app from "../app";
 import seed from "../db/seed";
 import issueJWT from "../utils/issueJWT";
+import jsonwebtoken from "jsonwebtoken";
 
 const api = supertest(app);
 
@@ -40,7 +41,7 @@ describe("Auth routes testing", () => {
       expect(res.body.username).toBe("newuser");
       expect(res.body.email).toBe("newuser@email.com");
       expect(res.body.token).not.toBeUndefined();
-      expect(res.body.expiresIn).toBe("604800000");
+      expect(res.body.expires).not.toBeUndefined();
 
       const users = await query(`SELECT * FROM app_user`, []);
       expect(users.rows.length).toBe(11);
@@ -201,7 +202,7 @@ describe("Auth routes testing", () => {
 
       expect(res.body.userId).toBe(1);
       expect(res.body.token).not.toBeUndefined();
-      expect(res.body.expiresIn).toBe("604800000");
+      expect(res.body.expires).not.toBeUndefined();
     });
 
     test("Should not log user in if password incorrect", async () => {
@@ -252,13 +253,46 @@ describe("Auth routes testing", () => {
   });
 
   describe("Test a route only for logged in users", () => {
-    test.only("It should only return if user sends a valid jwt", async () => {
+    test("It should only return if user sends a valid jwt", async () => {
       const jwt = issueJWT(1);
-      console.log(jwt);
       const res = await api
         .get("/auth/protected")
-        .send({ Authorization: jwt.token })
+        .set("Authorization", `Bearer ${jwt.token}`)
         .expect(200);
+
+      expect(res.body.userId).toBe(1);
+    });
+
+    test("It should not access route if not jwt token", async () => {
+      const res = await api.get("/auth/protected").expect(401);
+
+      expect(res.body.error).toBe("You are not logged in");
+    });
+
+    test("It should not access route if not a valid jwt token", async () => {
+      const res = await api
+        .get("/auth/protected")
+        .set("Authorization", `Bearer ${"f4i3ofj43oifjoisjdfoji"}`)
+        .expect(401);
+
+      expect(res.body.error).toBe("You are not logged in");
+    });
+
+    test("It should not access route with expired jwt token", async () => {
+      const payload = {
+        sub: 1,
+        iat: Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 8,
+      };
+      const signedToken = jsonwebtoken.sign(payload, process.env.JWT_PRIVATE!, {
+        expiresIn: "7d",
+      });
+
+      const res = await api
+        .get("/auth/protected")
+        .set("Authorization", `Bearer ${signedToken}`)
+        .expect(401);
+
+      expect(res.body.error).toBe("You are not logged in");
     });
   });
 });
