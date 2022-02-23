@@ -3,12 +3,10 @@ import {
   randBetweenDate,
   randEmail,
   randImg,
-  randPassword,
   randProductDescription,
   randProductName,
   randUserName,
 } from "@ngneat/falso";
-import bcrypt from "bcrypt";
 
 const seed = async (pool: Pool) => {
   // Clear any existing tables
@@ -25,8 +23,8 @@ const seed = async (pool: Pool) => {
     joined DATE NOT NULL
   )`);
 
-  // Generate default user data
-  const password = await bcrypt.hash("test", 12);
+  // Generate default user data - password is 'test' hashed
+  const password = "$2b$12$nkw.avFoGW1Y0KSA78vAMu7DXogIva18YpQPnVWSjIska9ozJOXSy"
   const users = [
     {
       username: "test",
