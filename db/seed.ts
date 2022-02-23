@@ -3,7 +3,6 @@ import {
   randBetweenDate,
   randEmail,
   randImg,
-  randPassword,
   randProductDescription,
   randProductName,
   randUserName,
@@ -25,8 +24,9 @@ const seed = async (pool: Pool) => {
     joined DATE NOT NULL
   )`);
 
-  // Generate default user data
-  const password = await bcrypt.hash("test", 12);
+  // Generate default user data - hashed "password"
+  const password =
+    "$2b$12$Bl8sprbG8TLdsVipyD2TteJt9pYp4.ZaWKo8HaN.lS2tpQLj6w.jG";
   const users = [
     {
       username: "test",
