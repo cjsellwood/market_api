@@ -23,4 +23,5 @@ jobs:
       - name: Jest tests
         env:
           DATABASE_URL: postgresql://postgres:password@localhost:5432/market_api
+          JWT_PRIVATE: EB5335FCCDFE1B95F685C24BC27F2
         run: npm run test:actions
