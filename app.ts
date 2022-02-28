@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import express, { NextFunction, Request, Response } from "express";
 import morgan from "morgan";
+import cors from "cors";
 import StatusError from "./utils/StatusError";
 import authRouter from "./routes/authRouter";
 
@@ -13,6 +14,7 @@ app.get("/", (req: Request, res: Response) => {
 
 // Middleware
 app.use(express.json());
+app.use(cors())
 app.use(morgan("dev", { skip: () => process.env.NODE_ENV === "test" }));
 
 // Routes

@@ -201,6 +201,8 @@ describe("Auth routes testing", () => {
         .expect(200);
 
       expect(res.body.userId).toBe(1);
+      expect(res.body.username).toBe("test");
+      expect(res.body.email).toBe("test@email.com");
       expect(res.body.token).not.toBeUndefined();
       expect(res.body.expires).not.toBeUndefined();
     });

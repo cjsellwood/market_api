@@ -7,7 +7,6 @@ import {
   randProductName,
   randUserName,
 } from "@ngneat/falso";
-import bcrypt from "bcrypt";
 
 const seed = async (pool: Pool) => {
   // Clear any existing tables
@@ -18,8 +17,8 @@ const seed = async (pool: Pool) => {
   // Create app_user table
   await pool.query(`CREATE TABLE app_user (
     user_id serial PRIMARY KEY,
-    username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
+    username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     joined DATE NOT NULL
   )`);
