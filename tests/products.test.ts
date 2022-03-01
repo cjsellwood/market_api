@@ -34,7 +34,5 @@ describe("Product routes", () => {
 
     const sorted = [...ids].sort((a, b) => a - b);
     expect(ids).not.toEqual(sorted);
-
-    console.log(res.body[0]);
   });
 });

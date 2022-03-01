@@ -1,6 +1,7 @@
 import { Pool } from "pg";
 import {
   randBetweenDate,
+  randCity,
   randEmail,
   randImg,
   randProductDescription,
@@ -85,7 +86,8 @@ const seed = async (pool: Pool) => {
     description TEXT,
     price INT,
     images TEXT[],
-    listed DATE
+    listed DATE,
+    location TEXT
   )`);
 
   // Default products
@@ -100,13 +102,14 @@ const seed = async (pool: Pool) => {
       price: Math.floor(Math.random() * 1000 + 10),
       images: [randImg(), randImg(), randImg()],
       listed: new Date(Date.now()),
+      location: randCity(),
     });
   }
 
   for (let product of products) {
     await pool.query(
-      `INSERT INTO product(user_id, category_id, title, description, price, images, listed)
-        VALUES($1, $2, $3, $4, $5, $6, $7)`,
+      `INSERT INTO product(user_id, category_id, title, description, price, images, listed, location)
+        VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         product.user_id,
         product.category_id,
@@ -115,6 +118,7 @@ const seed = async (pool: Pool) => {
         product.price,
         product.images,
         product.listed,
+        product.location,
       ]
     );
   }
