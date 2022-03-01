@@ -5,6 +5,7 @@ import morgan from "morgan";
 import cors from "cors";
 import StatusError from "./utils/StatusError";
 import authRouter from "./routes/authRouter";
+import productRouter from "./routes/productRouter";
 
 const app = express();
 
@@ -14,11 +15,12 @@ app.get("/", (req: Request, res: Response) => {
 
 // Middleware
 app.use(express.json());
-app.use(cors())
+app.use(cors());
 app.use(morgan("dev", { skip: () => process.env.NODE_ENV === "test" }));
 
 // Routes
 app.use("/auth", authRouter);
+app.use("/products", productRouter);
 
 // Error handling
 app.use(
