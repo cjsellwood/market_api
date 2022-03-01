@@ -17,7 +17,7 @@ export const registerUser = catchAsync(
         [username, email, hashedPassword, new Date(Date.now())]
       );
 
-      const userId = response.rows[0].user_id;
+      const userId = response.rows[0].user_id as number;
       const jwt = issueJWT(userId);
 
       res.json({
@@ -44,7 +44,7 @@ export const loginUser = catchAsync(
     const { email, password } = req.body;
 
     const user = await query(
-      `SELECT user_id, password FROM app_user WHERE email = $1`,
+      `SELECT user_id, password, username FROM app_user WHERE email = $1`,
       [email]
     );
 
@@ -65,6 +65,8 @@ export const loginUser = catchAsync(
     const jwt = issueJWT(userId);
 
     res.json({
+      email,
+      username: user.rows[0].username,
       userId,
       token: jwt.token,
       expires: jwt.expires,
@@ -74,6 +76,6 @@ export const loginUser = catchAsync(
 
 export const protectedRoute = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    res.json({ user_id: req.userId });
+    res.json({ user_id: res.locals.userId });
   }
 );

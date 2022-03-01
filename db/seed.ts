@@ -1,13 +1,13 @@
 import { Pool } from "pg";
 import {
   randBetweenDate,
+  randCity,
   randEmail,
   randImg,
   randProductDescription,
   randProductName,
   randUserName,
 } from "@ngneat/falso";
-import bcrypt from "bcrypt";
 
 const seed = async (pool: Pool) => {
   // Clear any existing tables
@@ -18,8 +18,8 @@ const seed = async (pool: Pool) => {
   // Create app_user table
   await pool.query(`CREATE TABLE app_user (
     user_id serial PRIMARY KEY,
-    username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
+    username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     joined DATE NOT NULL
   )`);
@@ -85,7 +85,9 @@ const seed = async (pool: Pool) => {
     title TEXT NOT NULL,
     description TEXT,
     price INT,
-    image TEXT
+    images TEXT[],
+    listed DATE,
+    location TEXT
   )`);
 
   // Default products
@@ -98,21 +100,25 @@ const seed = async (pool: Pool) => {
       title: randProductName(),
       description: randProductDescription(),
       price: Math.floor(Math.random() * 1000 + 10),
-      image: randImg(),
+      images: [randImg(), randImg(), randImg()],
+      listed: new Date(Date.now()),
+      location: randCity(),
     });
   }
 
   for (let product of products) {
     await pool.query(
-      `INSERT INTO product(user_id, category_id, title, description, price, image)
-        VALUES($1, $2, $3, $4, $5, $6)`,
+      `INSERT INTO product(user_id, category_id, title, description, price, images, listed, location)
+        VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         product.user_id,
         product.category_id,
         product.title,
         product.description,
         product.price,
-        product.image,
+        product.images,
+        product.listed,
+        product.location,
       ]
     );
   }
