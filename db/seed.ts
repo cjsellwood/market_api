@@ -93,6 +93,14 @@ const seed = async (pool: Pool) => {
   // Default products
   const products = [];
 
+  const placeImgs = [
+    "https://placeimg.com/500/500/tech",
+    "https://placeimg.com/500/500/arch",
+    "https://placeimg.com/500/500/animals",
+    "https://placeimg.com/500/500/nature",
+    "https://placeimg.com/500/500/people",
+  ];
+
   for (let i = 0; i < 50; i++) {
     products.push({
       user_id: Math.floor(Math.random() * 10 + 1),
@@ -100,7 +108,7 @@ const seed = async (pool: Pool) => {
       title: randProductName(),
       description: randProductDescription(),
       price: Math.floor(Math.random() * 1000 + 10),
-      images: [randImg(), randImg(), randImg()],
+      images: [placeImgs[Math.floor(Math.random() * 5)]],
       listed: new Date(Date.now()),
       location: randCity(),
     });

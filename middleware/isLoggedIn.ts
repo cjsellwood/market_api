@@ -9,7 +9,7 @@ export default (req: Request, res: Response, next: NextFunction) => {
   if (!authorization) {
     return next(new StatusError("You are not logged in", 401));
   }
-  const token = authorization?.split(" ")[1];
+  const token = authorization.split(" ")[1];
 
   try {
     // Check jwt for validity and expiration

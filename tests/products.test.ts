@@ -35,4 +35,25 @@ describe("Product routes", () => {
     const sorted = [...ids].sort((a, b) => a - b);
     expect(ids).not.toEqual(sorted);
   });
+
+  test("Sends data on a single product", async () => {
+    const dbProduct = await query(
+      `SELECT product_id, title, description, price, images, listed, location, app_user.username, category.name as category FROM product 
+      JOIN category ON product.category_id = category.category_id
+      JOIN app_user ON product.user_id = app_user.user_id
+        WHERE product_id = 29`,
+      []
+    );
+    const expectedProduct = dbProduct.rows[0];
+    expectedProduct.listed = expectedProduct.listed.toISOString();
+    const res = await api.get("/products/29").expect(200);
+
+    expect(res.body).toEqual(expectedProduct);
+  });
+
+  test("Send error if product not in database", async () => {
+    const res = await api.get("/products/99").expect(404);
+
+    expect(res.body.error).toBe("Product not found");
+  });
 });
