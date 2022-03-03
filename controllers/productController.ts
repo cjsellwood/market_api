@@ -97,3 +97,37 @@ export const categoryProducts = catchAsync(
     res.json({ products: result.rows, count });
   }
 );
+
+export const searchProducts = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    let { page, count, q } = req.query;
+    if (!page) {
+      page = "1";
+    }
+
+    const offset = (Number(page) - 1) * 20;
+
+    // Sort by most recent by default and limit to 20
+    const result = await query(
+      `SELECT product_id, title, description, price, images[1] as image, location, listed
+        FROM product 
+        WHERE LOWER(title) LIKE $2 OR LOWER(description) LIKE $2
+        ORDER BY listed DESC LIMIT 20 OFFSET $1`,
+      [offset, `%${(q as string).toLowerCase()}%`]
+    );
+
+    // Get amount of products for pagination on front end
+    if (result.rows.length < 20) {
+      count = result.rows.length.toString();
+    } else if (!count) {
+      const countResult = await query(
+        `SELECT COUNT(product_id) FROM product
+        WHERE LOWER(title) LIKE $1 OR LOWER(description) LIKE $1`,
+        [`%${(q as string).toLowerCase()}%`]
+      );
+      count = countResult.rows[0].count;
+    }
+
+    res.json({ products: result.rows, count });
+  }
+);

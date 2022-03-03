@@ -150,11 +150,74 @@ describe("Product routes", () => {
         (product) => product.category_id === 1
       );
 
-      console.log(filteredProducts);
-
       const res = await api.get("/products/category/1").expect(200);
 
       expect(res.body.products.length).toBe(filteredProducts.length);
+    });
+  });
+
+  describe("Search products route", () => {
+    test("Gets products matching a search query", async () => {
+      const allResult = await query(
+        `SELECT product_id, title, description, price, images[1] as image, location, listed
+      FROM product ORDER BY listed DESC`,
+        []
+      );
+      const allProducts = allResult.rows;
+      for (let product of allProducts) {
+        product.listed = product.listed.toISOString();
+      }
+
+      const filteredProducts = allProducts.filter(
+        (product) =>
+          /the/i.test(product.title) || /the/i.test(product.description)
+      );
+
+      const res = await api.get("/products/search?q=the").expect(200);
+
+      expect(res.body.count).toBe(filteredProducts.length.toString());
+      expect(
+        res.body.products.find(
+          (el: { product_id: number }) =>
+            el.product_id === filteredProducts[0].product_id
+        )
+      ).toEqual(filteredProducts[0]);
+
+      expect(
+        res.body.products.find(
+          (el: { product_id: number }) =>
+            el.product_id === filteredProducts[1].product_id
+        )
+      ).toEqual(filteredProducts[1]);
+    });
+
+    test("Search with zero results", async () => {
+      const res = await api
+        .get("/products/search?q=zzzzzzzzzzzzzzzzz")
+        .expect(200);
+
+      expect(res.body.count).toBe("0");
+      expect(res.body.products).toEqual([]);
+    });
+
+    test("Search with 1-20 results", async () => {
+      const allResult = await query(
+        `SELECT product_id, title, description, price, images[1] as image, location, listed
+      FROM product ORDER BY listed DESC`,
+        []
+      );
+      const allProducts = allResult.rows;
+      const res = await api
+        .get(`/products/search?q=${allProducts[0].description}`)
+        .expect(200);
+
+      const filteredProducts = allProducts.filter((product) => {
+        const re = new RegExp(`${allProducts[0].description}`, "i");
+        return re.test(product.title) || re.test(product.description);
+      });
+
+      expect(res.body.count).toBe(filteredProducts.length.toString());
+      expect(res.body.products.length).toEqual(filteredProducts.length);
     });
   });
 });

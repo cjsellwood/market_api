@@ -4,6 +4,7 @@ import {
   categoryProducts,
   randomProducts,
   singleProduct,
+  searchProducts
 } from "../controllers/productController";
 const router = express.Router();
 
@@ -11,8 +12,10 @@ router.get("/", allProducts);
 
 router.get("/random", randomProducts);
 
-router.get("/:id", singleProduct);
+router.get("/search", searchProducts);
 
 router.get("/category/:category_id", categoryProducts);
+
+router.get("/:id", singleProduct);
 
 export default router;
