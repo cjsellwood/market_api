@@ -219,5 +219,33 @@ describe("Product routes", () => {
       expect(res.body.count).toBe(filteredProducts.length.toString());
       expect(res.body.products.length).toEqual(filteredProducts.length);
     });
+
+    test("Search within a specific category", async () => {
+      const allResult = await query(
+        `SELECT product_id, category_id, title, description, price, images[1] as image, location, listed
+      FROM product ORDER BY listed DESC`,
+        []
+      );
+      const allProducts = allResult.rows;
+      for (let product of allProducts) {
+        product.listed = product.listed.toISOString();
+      }
+
+      const filteredProducts = allProducts.filter(
+        (product) =>
+          (/the/i.test(product.title) || /the/i.test(product.description)) &&
+          product.category_id === 1
+      );
+
+      for (let product of filteredProducts) {
+        delete product.category_id;
+      }
+      const res = await api
+        .get("/products/search?q=the&category=1")
+        .expect(200);
+
+      expect(res.body.count).toEqual(filteredProducts.length.toString());
+      expect(res.body.products).toEqual(filteredProducts);
+    });
   });
 });

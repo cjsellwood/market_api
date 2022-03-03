@@ -100,21 +100,33 @@ export const categoryProducts = catchAsync(
 
 export const searchProducts = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    let { page, count, q } = req.query;
+    let { page, count, q, category: category_id } = req.query;
     if (!page) {
       page = "1";
     }
 
     const offset = (Number(page) - 1) * 20;
 
-    // Sort by most recent by default and limit to 20
-    const result = await query(
-      `SELECT product_id, title, description, price, images[1] as image, location, listed
-        FROM product 
-        WHERE LOWER(title) LIKE $2 OR LOWER(description) LIKE $2
-        ORDER BY listed DESC LIMIT 20 OFFSET $1`,
-      [offset, `%${(q as string).toLowerCase()}%`]
-    );
+    // Add category filter to query if included in search
+    let result;
+    if (category_id) {
+      result = await query(
+        `SELECT product_id, title, description, price, images[1] as image, location, listed
+          FROM product 
+          WHERE (LOWER(title) LIKE $2 OR LOWER(description) LIKE $2) AND category_id = $3
+          ORDER BY listed DESC LIMIT 20 OFFSET $1`,
+        [offset, `%${(q as string).toLowerCase()}%`, category_id]
+      );
+    } else {
+      // Sort by most recent by default and limit to 20
+      result = await query(
+        `SELECT product_id, title, description, price, images[1] as image, location, listed
+          FROM product 
+          WHERE LOWER(title) LIKE $2 OR LOWER(description) LIKE $2
+          ORDER BY listed DESC LIMIT 20 OFFSET $1`,
+        [offset, `%${(q as string).toLowerCase()}%`]
+      );
+    }
 
     // Get amount of products for pagination on front end
     if (result.rows.length < 20) {
