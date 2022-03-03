@@ -108,8 +108,12 @@ const seed = async (pool: Pool) => {
       title: randProductName(),
       description: randProductDescription(),
       price: Math.floor(Math.random() * 1000 + 10),
-      images: [placeImgs[Math.floor(Math.random() * 5)]],
-      listed: new Date(Date.now()),
+      images: [
+        placeImgs[Math.floor(Math.random() * 5)],
+        placeImgs[Math.floor(Math.random() * 5)],
+        placeImgs[Math.floor(Math.random() * 5)],
+      ],
+      listed: randBetweenDate({ from: new Date("01/01/2022"), to: new Date() }),
       location: randCity(),
     });
   }

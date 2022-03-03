@@ -56,4 +56,105 @@ describe("Product routes", () => {
 
     expect(res.body.error).toBe("Product not found");
   });
+
+  describe("All Products Route", () => {
+    test("Gets all products", async () => {
+      const res = await api.get("/products").expect(200);
+
+      expect(res.body.count).toBe("50");
+
+      const products = res.body.products;
+      expect(products.length).toBe(20);
+
+      const dates = products.map((product: { listed: Date }) => product.listed);
+
+      // Sorted by most recent
+      const sorted = [...dates].sort(
+        (a, b) => new Date(b).getTime() - new Date(a).getTime()
+      );
+
+      expect(dates).toEqual(sorted);
+    });
+
+    test("Gets 2nd page of products", async () => {
+      const allResult = await query(
+        `SELECT product_id, title, description, price, images[1] as image, location, listed
+      FROM product ORDER BY listed DESC`,
+        []
+      );
+      const allProducts = allResult.rows;
+      for (let product of allProducts) {
+        product.listed = product.listed.toISOString();
+      }
+
+      const res = await api.get("/products?page=2").expect(200);
+
+      expect(res.body.count).toBe("50");
+
+      const products = res.body.products;
+      expect(products.length).toBe(20);
+      expect(products).toEqual(allProducts.slice(20, 40));
+    });
+
+    test("Gets last page of products", async () => {
+      const allResult = await query(
+        `SELECT product_id, title, description, price, images[1] as image, location, listed
+      FROM product ORDER BY listed DESC`,
+        []
+      );
+      const allProducts = allResult.rows;
+      for (let product of allProducts) {
+        product.listed = product.listed.toISOString();
+      }
+
+      const res = await api.get("/products?page=3").expect(200);
+
+      expect(res.body.count).toBe("50");
+
+      const products = res.body.products;
+      expect(products.length).toBe(10);
+      expect(products).toEqual(allProducts.slice(40, 50));
+    });
+
+    test("Returns products if received count from previous query", async () => {
+      const res = await api.get("/products?count=50");
+
+      expect(res.body.count).toBe("50");
+
+      const products = res.body.products;
+      expect(products.length).toBe(20);
+    });
+
+    test("Return not found error if offset greater than count", async () => {
+      const res = await api.get("/products?count=50&page=5");
+
+      expect(res.body.count).toBe("50");
+      const products = res.body.products;
+      expect(products.length).toBe(0);
+    });
+  });
+
+  describe("Category products route", () => {
+    test("Gets products with a specified category", async () => {
+      const allResult = await query(
+        `SELECT product_id, category_id, title, description, price, images[1] as image, location, listed
+      FROM product ORDER BY listed DESC`,
+        []
+      );
+      const allProducts = allResult.rows;
+      for (let product of allProducts) {
+        product.listed = product.listed.toISOString();
+      }
+
+      const filteredProducts = allProducts.filter(
+        (product) => product.category_id === 1
+      );
+
+      console.log(filteredProducts);
+
+      const res = await api.get("/products/category/1").expect(200);
+
+      expect(res.body.products.length).toBe(filteredProducts.length);
+    });
+  });
 });

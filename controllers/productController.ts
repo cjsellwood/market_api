@@ -6,7 +6,8 @@ import StatusError from "../utils/StatusError";
 export const randomProducts = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const result = await query(
-      `SELECT * FROM product ORDER BY random() LIMIT 20`,
+      `SELECT product_id, title, description, price, images[1] as image, location, listed
+        FROM product ORDER BY random() LIMIT 20`,
       []
     );
     res.json(result.rows);
@@ -30,5 +31,69 @@ export const singleProduct = catchAsync(
 
     const product = result.rows[0];
     res.json(product);
+  }
+);
+
+export const allProducts = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    let { page, count } = req.query;
+    if (!page) {
+      page = "1";
+    }
+
+    const offset = (Number(page) - 1) * 20;
+
+    // Sort by most recent by default and limit to 20
+    const result = await query(
+      `SELECT product_id, title, description, price, images[1] as image, location, listed
+        FROM product ORDER BY listed DESC LIMIT 20 OFFSET $1`,
+      [offset]
+    );
+
+    if (!count) {
+      const countResult = await query(
+        `SELECT COUNT(product_id) FROM product`,
+        []
+      );
+      count = countResult.rows[0].count;
+    }
+
+    res.json({ products: result.rows, count });
+  }
+);
+
+export const categoryProducts = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    let { page, count } = req.query;
+    if (!page) {
+      page = "1";
+    }
+
+    const { category_id } = req.params;
+
+    const offset = (Number(page) - 1) * 20;
+
+    // Sort by most recent by default and limit to 20
+    const result = await query(
+      `SELECT product_id, title, description, price, images[1] as image, location, listed
+        FROM product 
+        JOIN category on product.category_id = category.category_id
+        WHERE category.category_id = $2
+        ORDER BY listed DESC LIMIT 20 OFFSET $1`,
+      [offset, category_id]
+    );
+
+    if (!count) {
+      const countResult = await query(
+        `SELECT COUNT(product_id)
+        FROM product         
+        JOIN category on product.category_id = category.category_id
+        WHERE category.category_id = $1`,
+        [category_id]
+      );
+      count = countResult.rows[0].count;
+    }
+
+    res.json({ products: result.rows, count });
   }
 );
