@@ -153,6 +153,7 @@ describe("Product routes", () => {
       const res = await api.get("/products/category/1").expect(200);
 
       expect(res.body.products.length).toBe(filteredProducts.length);
+      expect(res.body.count).toBe(filteredProducts.length.toString());
     });
   });
 
@@ -220,7 +221,7 @@ describe("Product routes", () => {
       expect(res.body.products.length).toEqual(filteredProducts.length);
     });
 
-    test.only("Search within a specific category", async () => {
+    test("Search within a specific category", async () => {
       const allResult = await query(
         `SELECT product_id, category_id, title, description, price, images[1] as image, location, listed
       FROM product ORDER BY listed DESC`,
@@ -245,7 +246,6 @@ describe("Product routes", () => {
         .expect(200);
 
       expect(res.body.count).toEqual(filteredProducts.length.toString());
-      console.log(res.body.products, filteredProducts);
       expect(
         res.body.products.sort(
           (a: { product_id: number }, b: { product_id: number }) =>

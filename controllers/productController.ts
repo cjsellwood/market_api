@@ -50,7 +50,10 @@ export const allProducts = catchAsync(
       [offset]
     );
 
-    if (!count) {
+    // Get amount of products for pagination on front end
+    if (result.rows.length < 20 && page === "1") {
+      count = result.rows.length.toString();
+    } else if (!count) {
       const countResult = await query(
         `SELECT COUNT(product_id) FROM product`,
         []
@@ -83,7 +86,10 @@ export const categoryProducts = catchAsync(
       [offset, category_id]
     );
 
-    if (!count) {
+    // Get amount of products for pagination on front end
+    if (result.rows.length < 20 && page !== "1") {
+      count = result.rows.length.toString();
+    } else if (!count) {
       const countResult = await query(
         `SELECT COUNT(product_id)
         FROM product         
@@ -129,15 +135,24 @@ export const searchProducts = catchAsync(
     }
 
     // Get amount of products for pagination on front end
-    if (result.rows.length < 20) {
+    if (result.rows.length < 20 && page !== "1") {
       count = result.rows.length.toString();
     } else if (!count) {
-      const countResult = await query(
-        `SELECT COUNT(product_id) FROM product
-        WHERE LOWER(title) LIKE $1 OR LOWER(description) LIKE $1`,
-        [`%${(q as string).toLowerCase()}%`]
-      );
-      count = countResult.rows[0].count;
+      if (category_id) {
+        const countResult = await query(
+          `SELECT COUNT(product_id) FROM product
+          WHERE (LOWER(title) LIKE $1 OR LOWER(description) LIKE $1) AND category_id = $2`,
+          [`%${(q as string).toLowerCase()}%`, category_id]
+        );
+        count = countResult.rows[0].count;
+      } else {
+        const countResult = await query(
+          `SELECT COUNT(product_id) FROM product
+          WHERE LOWER(title) LIKE $1 OR LOWER(description) LIKE $1`,
+          [`%${(q as string).toLowerCase()}%`]
+        );
+        count = countResult.rows[0].count;
+      }
     }
 
     res.json({ products: result.rows, count });
