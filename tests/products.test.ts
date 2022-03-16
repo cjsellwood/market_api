@@ -259,4 +259,101 @@ describe("Product routes", () => {
       );
     });
   });
+
+  describe.only("New product route", () => {
+    test("Can add new product", async () => {
+      const res = await api
+        .post("/products/new")
+        .field("title", "new product")
+        .field("category_id", "1")
+        .field("description", "new product description")
+        .field("price", "99")
+        .field("location", "Melbourne")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image2.png")
+        .expect(200);
+
+      expect(res.body.product_id).toBe(51);
+    });
+  });
+
+  test("Don't add new product if no title", async () => {
+    const res = await api
+      .post("/products/new")
+      .field("category_id", "1")
+      .field("description", "new product description")
+      .field("price", "99")
+      .field("location", "Melbourne")
+      .attach("images", "tests/image1.jpg")
+      .attach("images", "tests/image2.png")
+      .expect(400);
+
+    expect(res.body.error).toBe('"title" is required');
+  });
+
+  test("Don't add if category_id invalid", async () => {
+    const res = await api
+      .post("/products/new")
+      .field("title", "new product")
+      .field("category_id", "8")
+      .field("description", "new product description")
+      .field("price", "99")
+      .field("location", "Melbourne")
+      .attach("images", "tests/image1.jpg")
+      .attach("images", "tests/image2.png")
+      .expect(400);
+
+    expect(res.body.error).toBe(
+      '"category_id" must be less than or equal to 7'
+    );
+  });
+
+  test("Don't add if description too short", async () => {
+    const res = await api
+      .post("/products/new")
+      .field("title", "new product")
+      .field("category_id", "1")
+      .field("description", "de")
+      .field("price", "99")
+      .field("location", "Melbourne")
+      .attach("images", "tests/image1.jpg")
+      .attach("images", "tests/image2.png")
+      .expect(400);
+
+    expect(res.body.error).toBe(
+      '"description" length must be at least 4 characters long'
+    );
+  });
+
+  test("Don't add if price not a number", async () => {
+    const res = await api
+      .post("/products/new")
+      .field("title", "new product")
+      .field("category_id", "1")
+      .field("description", "new product description")
+      .field("price", "99k")
+      .field("location", "Melbourne")
+      .attach("images", "tests/image1.jpg")
+      .attach("images", "tests/image2.png")
+      .expect(400);
+
+    expect(res.body.error).toBe('"price" must be a number');
+  });
+
+  test("Don't add if location too short", async () => {
+    const res = await api
+      .post("/products/new")
+      .field("title", "new product")
+      .field("category_id", "1")
+      .field("description", "new product description")
+      .field("price", "99")
+      .field("location", "Me")
+      .attach("images", "tests/image1.jpg")
+      .attach("images", "tests/image2.png")
+      .expect(400);
+
+    expect(res.body.error).toBe(
+      '"location" length must be at least 3 characters long'
+    );
+  });
 });
