@@ -87,7 +87,7 @@ export const categoryProducts = catchAsync(
     );
 
     // Get amount of products for pagination on front end
-    if (result.rows.length < 20 && page !== "1") {
+    if (result.rows.length < 20 && page === "1") {
       count = result.rows.length.toString();
     } else if (!count) {
       const countResult = await query(
@@ -135,7 +135,8 @@ export const searchProducts = catchAsync(
     }
 
     // Get amount of products for pagination on front end
-    if (result.rows.length < 20 && page !== "1") {
+    if (result.rows.length < 20 && page === "1") {
+      // Skip if less than 20 total results
       count = result.rows.length.toString();
     } else if (!count) {
       if (category_id) {
@@ -156,5 +157,12 @@ export const searchProducts = catchAsync(
     }
 
     res.json({ products: result.rows, count });
+  }
+);
+
+export const newProduct = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    console.log(req.files, req.body);
+    res.json({});
   }
 );
