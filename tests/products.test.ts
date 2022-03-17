@@ -2,6 +2,8 @@ import { Pool } from "pg";
 import app from "../app";
 import seed from "../db/seed";
 import supertest from "supertest";
+import * as upload from "../utils/uploadFile";
+import StatusError from "../utils/StatusError";
 
 const api = supertest(app);
 
@@ -311,6 +313,10 @@ describe("Product routes", () => {
 
   describe("New product route", () => {
     test("Can add new product", async () => {
+      jest
+        .spyOn(upload, "uploadFile")
+        .mockReturnValue(Promise.resolve({ url: "uploaded image url" }));
+
       const res = await api
         .post("/products/new")
         .field("title", "new product")
@@ -337,13 +343,33 @@ describe("Product routes", () => {
         title: "new product",
         description: "new product description",
         price: 99,
-        images: ["", ""],
+        images: ["uploaded image url", "uploaded image url"],
         listed: dbProduct.rows[0].listed,
         location: "Melbourne",
         username: "test",
         category: "Cars",
       });
     });
+
+    test("Send error if image upload failed", async () => {
+      jest.spyOn(upload, "uploadFile").mockImplementation(() => {
+        return Promise.reject(new StatusError("Image upload error", 500));
+      });
+
+      const res = await api
+        .post("/products/new")
+        .field("title", "new product")
+        .field("category_id", "1")
+        .field("description", "new product description")
+        .field("price", "99")
+        .field("location", "Melbourne")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image2.png")
+        .expect(500);
+
+      expect(res.body.error).toBe("Image upload error");
+    });
+
     test("Don't add new product if no title", async () => {
       const res = await api
         .post("/products/new")

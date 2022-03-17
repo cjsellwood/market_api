@@ -1,7 +1,21 @@
 import { Request, Response, NextFunction } from "express";
+import sharp from "sharp";
 import { query } from "../db/db";
 import catchAsync from "../utils/catchAsync";
 import StatusError from "../utils/StatusError";
+import cloudinaryImport, {
+  UploadApiErrorResponse,
+  UploadApiResponse,
+} from "cloudinary";
+import streamifier from "streamifier";
+import { uploadFile } from "../utils/uploadFile";
+const cloudinary = cloudinaryImport.v2;
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.CLOUD_KEY,
+  api_secret: process.env.CLOUD_SECRET,
+  secure: true,
+});
 
 export const randomProducts = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -160,10 +174,25 @@ export const searchProducts = catchAsync(
   }
 );
 
+
+
 export const newProduct = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const { category_id, title, description, price, location } = req.body;
-    // console.log(req.files, req.body);
+    req.files = req.files as Express.Multer.File[];
+
+    const images = [];
+    if (req.files) {
+      for (let file of req.files) {
+        const imageBuffer = await sharp(file.buffer)
+          .resize(800, 800, { fit: "inside" })
+          .webp()
+          .toBuffer();
+
+        const uploadResponse = await uploadFile(imageBuffer);
+        images.push((uploadResponse as UploadApiResponse).url);
+      }
+    }
 
     const result = await query(
       `INSERT INTO product(user_id, category_id, title, description, price, images, listed, location)
@@ -174,7 +203,7 @@ export const newProduct = catchAsync(
         title,
         description,
         price,
-        ["", ""],
+        images,
         new Date(),
         location,
       ]
