@@ -162,7 +162,24 @@ export const searchProducts = catchAsync(
 
 export const newProduct = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    console.log(req.files, req.body);
-    res.json({});
+    const { category_id, title, description, price, location } = req.body;
+    // console.log(req.files, req.body);
+
+    const result = await query(
+      `INSERT INTO product(user_id, category_id, title, description, price, images, listed, location)
+      VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING product_id`,
+      [
+        1,
+        category_id,
+        title,
+        description,
+        price,
+        ["", ""],
+        new Date(),
+        location,
+      ]
+    );
+
+    res.json(result.rows[0]);
   }
 );

@@ -86,7 +86,7 @@ const seed = async (pool: Pool) => {
     description TEXT,
     price INT,
     images TEXT[],
-    listed DATE,
+    listed TIMESTAMP,
     location TEXT
   )`);
 

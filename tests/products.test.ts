@@ -132,6 +132,16 @@ describe("Product routes", () => {
       const products = res.body.products;
       expect(products.length).toBe(0);
     });
+
+    test("Returning count if number of products less than 20", async () => {
+      await query(`DELETE FROM product WHERE product_id > 10`, []);
+      const res = await api.get("/products").expect(200);
+
+      expect(res.body.count).toBe("10");
+
+      const products = res.body.products;
+      expect(products.length).toBe(10);
+    });
   });
 
   describe("Category products route", () => {
@@ -153,6 +163,31 @@ describe("Product routes", () => {
       const res = await api.get("/products/category/1").expect(200);
 
       expect(res.body.products.length).toBe(filteredProducts.length);
+      expect(res.body.count).toBe(filteredProducts.length.toString());
+    });
+
+    test("Gets page 3 of a categories products", async () => {
+      await query(
+        `UPDATE product SET category_id = 1 WHERE product_id > 0`,
+        []
+      );
+      const allResult = await query(
+        `SELECT product_id, category_id, title, description, price, images[1] as image, location, listed
+      FROM product ORDER BY listed DESC`,
+        []
+      );
+      const allProducts = allResult.rows;
+      for (let product of allProducts) {
+        product.listed = product.listed.toISOString();
+      }
+
+      const filteredProducts = allProducts.filter(
+        (product) => product.category_id === 1
+      );
+
+      const res = await api.get("/products/category/1?page=3").expect(200);
+
+      expect(res.body.products.length).toBe(10);
       expect(res.body.count).toBe(filteredProducts.length.toString());
     });
   });
@@ -258,9 +293,23 @@ describe("Product routes", () => {
         )
       );
     });
+
+    test("Getting a second page of category search results", async () => {
+      await query(
+        `UPDATE product SET category_id = 1, title = 'the' WHERE product_id > 0`,
+        []
+      );
+
+      const res = await api
+        .get("/products/search?page=2&q=the&category=1")
+        .expect(200);
+
+      expect(res.body.count).toBe("50");
+      expect(res.body.products.length).toBe(20);
+    });
   });
 
-  describe.only("New product route", () => {
+  describe("New product route", () => {
     test("Can add new product", async () => {
       const res = await api
         .post("/products/new")
@@ -274,86 +323,105 @@ describe("Product routes", () => {
         .expect(200);
 
       expect(res.body.product_id).toBe(51);
+
+      const dbProduct = await query(
+        `SELECT product_id, title, description, price, images, listed, location, app_user.username, category.name as category FROM product 
+        JOIN category ON product.category_id = category.category_id
+        JOIN app_user ON product.user_id = app_user.user_id
+          WHERE product_id = 51`,
+        []
+      );
+
+      expect(dbProduct.rows[0]).toEqual({
+        product_id: 51,
+        title: "new product",
+        description: "new product description",
+        price: 99,
+        images: ["", ""],
+        listed: dbProduct.rows[0].listed,
+        location: "Melbourne",
+        username: "test",
+        category: "Cars",
+      });
     });
-  });
+    test("Don't add new product if no title", async () => {
+      const res = await api
+        .post("/products/new")
+        .field("category_id", "1")
+        .field("description", "new product description")
+        .field("price", "99")
+        .field("location", "Melbourne")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image2.png")
+        .expect(400);
 
-  test("Don't add new product if no title", async () => {
-    const res = await api
-      .post("/products/new")
-      .field("category_id", "1")
-      .field("description", "new product description")
-      .field("price", "99")
-      .field("location", "Melbourne")
-      .attach("images", "tests/image1.jpg")
-      .attach("images", "tests/image2.png")
-      .expect(400);
+      expect(res.body.error).toBe('"title" is required');
+    });
 
-    expect(res.body.error).toBe('"title" is required');
-  });
+    test("Don't add if category_id invalid", async () => {
+      const res = await api
+        .post("/products/new")
+        .field("title", "new product")
+        .field("category_id", "8")
+        .field("description", "new product description")
+        .field("price", "99")
+        .field("location", "Melbourne")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image2.png")
+        .expect(400);
 
-  test("Don't add if category_id invalid", async () => {
-    const res = await api
-      .post("/products/new")
-      .field("title", "new product")
-      .field("category_id", "8")
-      .field("description", "new product description")
-      .field("price", "99")
-      .field("location", "Melbourne")
-      .attach("images", "tests/image1.jpg")
-      .attach("images", "tests/image2.png")
-      .expect(400);
+      expect(res.body.error).toBe(
+        '"category_id" must be less than or equal to 7'
+      );
+    });
 
-    expect(res.body.error).toBe(
-      '"category_id" must be less than or equal to 7'
-    );
-  });
+    test("Don't add if description too short", async () => {
+      const res = await api
+        .post("/products/new")
+        .field("title", "new product")
+        .field("category_id", "1")
+        .field("description", "de")
+        .field("price", "99")
+        .field("location", "Melbourne")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image2.png")
+        .expect(400);
 
-  test("Don't add if description too short", async () => {
-    const res = await api
-      .post("/products/new")
-      .field("title", "new product")
-      .field("category_id", "1")
-      .field("description", "de")
-      .field("price", "99")
-      .field("location", "Melbourne")
-      .attach("images", "tests/image1.jpg")
-      .attach("images", "tests/image2.png")
-      .expect(400);
+      expect(res.body.error).toBe(
+        '"description" length must be at least 4 characters long'
+      );
+    });
 
-    expect(res.body.error).toBe(
-      '"description" length must be at least 4 characters long'
-    );
-  });
+    test("Don't add if price not a number", async () => {
+      const res = await api
+        .post("/products/new")
+        .field("title", "new product")
+        .field("category_id", "1")
+        .field("description", "new product description")
+        .field("price", "99k")
+        .field("location", "Melbourne")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image2.png")
+        .expect(400);
 
-  test("Don't add if price not a number", async () => {
-    const res = await api
-      .post("/products/new")
-      .field("title", "new product")
-      .field("category_id", "1")
-      .field("description", "new product description")
-      .field("price", "99k")
-      .field("location", "Melbourne")
-      .attach("images", "tests/image1.jpg")
-      .attach("images", "tests/image2.png")
-      .expect(400);
+      expect(res.body.error).toBe('"price" must be a number');
+    });
 
-    expect(res.body.error).toBe('"price" must be a number');
-  });
+    test("Don't add if location too short", async () => {
+      const res = await api
+        .post("/products/new")
+        .field("title", "new product")
+        .field("category_id", "1")
+        .field("description", "new product description")
+        .field("price", "99")
+        .field("location", "Me")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image2.png")
+        .expect(400);
 
-  test("Don't add if location too short", async () => {
-    const res = await api
-      .post("/products/new")
-      .field("title", "new product")
-      .field("category_id", "1")
-      .field("description", "new product description")
-      .field("price", "99")
-      .field("location", "Me")
-      .attach("images", "tests/image1.jpg")
-      .attach("images", "tests/image2.png")
-      .expect(400);
-
-    expect(res.body.error).toBe(
-      '"location" length must be at least 3 characters long'
-    );
+      expect(res.body.error).toBe(
+        '"location" length must be at least 3 characters long'
+      );
+    });
   });
 });
