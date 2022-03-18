@@ -1,7 +1,21 @@
 import { Request, Response, NextFunction } from "express";
+import sharp from "sharp";
 import { query } from "../db/db";
 import catchAsync from "../utils/catchAsync";
 import StatusError from "../utils/StatusError";
+import cloudinaryImport, {
+  UploadApiErrorResponse,
+  UploadApiResponse,
+} from "cloudinary";
+import streamifier from "streamifier";
+import { uploadFile } from "../utils/uploadFile";
+const cloudinary = cloudinaryImport.v2;
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.CLOUD_KEY,
+  api_secret: process.env.CLOUD_SECRET,
+  secure: true,
+});
 
 export const randomProducts = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -50,7 +64,10 @@ export const allProducts = catchAsync(
       [offset]
     );
 
-    if (!count) {
+    // Get amount of products for pagination on front end
+    if (result.rows.length < 20 && page === "1") {
+      count = result.rows.length.toString();
+    } else if (!count) {
       const countResult = await query(
         `SELECT COUNT(product_id) FROM product`,
         []
@@ -83,7 +100,10 @@ export const categoryProducts = catchAsync(
       [offset, category_id]
     );
 
-    if (!count) {
+    // Get amount of products for pagination on front end
+    if (result.rows.length < 20 && page === "1") {
+      count = result.rows.length.toString();
+    } else if (!count) {
       const countResult = await query(
         `SELECT COUNT(product_id)
         FROM product         
@@ -129,17 +149,59 @@ export const searchProducts = catchAsync(
     }
 
     // Get amount of products for pagination on front end
-    if (result.rows.length < 20) {
+    if (result.rows.length < 20 && page === "1") {
+      // Skip if less than 20 total results
       count = result.rows.length.toString();
     } else if (!count) {
-      const countResult = await query(
-        `SELECT COUNT(product_id) FROM product
-        WHERE LOWER(title) LIKE $1 OR LOWER(description) LIKE $1`,
-        [`%${(q as string).toLowerCase()}%`]
-      );
-      count = countResult.rows[0].count;
+      if (category_id) {
+        const countResult = await query(
+          `SELECT COUNT(product_id) FROM product
+          WHERE (LOWER(title) LIKE $1 OR LOWER(description) LIKE $1) AND category_id = $2`,
+          [`%${(q as string).toLowerCase()}%`, category_id]
+        );
+        count = countResult.rows[0].count;
+      } else {
+        const countResult = await query(
+          `SELECT COUNT(product_id) FROM product
+          WHERE LOWER(title) LIKE $1 OR LOWER(description) LIKE $1`,
+          [`%${(q as string).toLowerCase()}%`]
+        );
+        count = countResult.rows[0].count;
+      }
     }
 
     res.json({ products: result.rows, count });
+  }
+);
+
+export const newProduct = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    req.files = req.files as Express.Multer.File[];
+    if (req.files.length > 3) {
+      next(new StatusError("Maximum of 3 images allowed", 400));
+    }
+
+    const images = [];
+    if (req.files) {
+      for (let file of req.files) {
+        const imageBuffer = await sharp(file.buffer)
+          .resize(800, 800, { fit: "inside" })
+          .webp()
+          .toBuffer();
+
+        const uploadResponse = await uploadFile(imageBuffer);
+        images.push((uploadResponse as UploadApiResponse).url);
+      }
+    }
+
+    const { category_id, title, description, price, location } = req.body;
+
+    const result = await query(
+      `INSERT INTO product(user_id, category_id, title, description, price, images, listed, location)
+      VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING product_id`,
+      [1, category_id, title, description, price, images, new Date(), location]
+    );
+
+    res.json(result.rows[0]);
   }
 );
