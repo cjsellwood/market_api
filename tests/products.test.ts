@@ -370,6 +370,23 @@ describe("Product routes", () => {
       expect(res.body.error).toBe("Image upload error");
     });
 
+    test("Send error if more than 3 images", async () => {
+      const res = await api
+        .post("/products/new")
+        .field("title", "new product")
+        .field("category_id", "1")
+        .field("description", "new product description")
+        .field("price", "99")
+        .field("location", "Melbourne")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image2.png")
+        .expect(400);
+
+      expect(res.body.error).toBe("Maximum of 3 images allowed");
+    });
+
     test("Don't add new product if no title", async () => {
       const res = await api
         .post("/products/new")

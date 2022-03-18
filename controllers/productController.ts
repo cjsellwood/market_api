@@ -174,12 +174,12 @@ export const searchProducts = catchAsync(
   }
 );
 
-
-
 export const newProduct = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { category_id, title, description, price, location } = req.body;
     req.files = req.files as Express.Multer.File[];
+    if (req.files.length > 3) {
+      next(new StatusError("Maximum of 3 images allowed", 400));
+    }
 
     const images = [];
     if (req.files) {
@@ -194,19 +194,12 @@ export const newProduct = catchAsync(
       }
     }
 
+    const { category_id, title, description, price, location } = req.body;
+
     const result = await query(
       `INSERT INTO product(user_id, category_id, title, description, price, images, listed, location)
       VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING product_id`,
-      [
-        1,
-        category_id,
-        title,
-        description,
-        price,
-        images,
-        new Date(),
-        location,
-      ]
+      [1, category_id, title, description, price, images, new Date(), location]
     );
 
     res.json(result.rows[0]);
