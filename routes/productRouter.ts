@@ -6,6 +6,8 @@ import {
   singleProduct,
   searchProducts,
   newProduct,
+  deleteProduct,
+  updateProduct,
 } from "../controllers/productController";
 import multer from "multer";
 import { validateNewProduct } from "../middleware/validation";
@@ -24,5 +26,9 @@ router.post("/new", upload.array("images"), validateNewProduct, newProduct);
 router.get("/category/:category_id", categoryProducts);
 
 router.get("/:id", singleProduct);
+
+router.delete("/:id", deleteProduct);
+
+router.put("/:id", upload.array("images"), updateProduct);
 
 export default router;
