@@ -12,7 +12,6 @@ export const uploadFile = (buffer: Buffer) => {
     const cloudUploader = cloudinary.uploader.upload_stream(
       { folder: "market" },
       (error?: UploadApiErrorResponse, result?: UploadApiResponse) => {
-        console.log(result);
         if (result) {
           resolve(result);
         } else {

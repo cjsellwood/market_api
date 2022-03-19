@@ -22,6 +22,10 @@ describe("Product routes", () => {
     await seed(pool);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   afterAll(async () => {
     await pool.end();
   });
@@ -510,6 +514,93 @@ describe("Product routes", () => {
     test("Return error if trying to delete a product that does not exits", async () => {
       const res = await api.delete(`/products/999`).expect(404);
       expect(res.body.error).toBe("Product not found");
+    });
+  });
+
+  describe("Update product route", () => {
+    test("Updates a product", async () => {
+      jest
+        .spyOn(upload, "uploadFile")
+        .mockReturnValue(Promise.resolve({ url: "uploaded image url" }));
+
+      // Create new product
+      await api
+        .post("/products/new")
+        .field("title", "new product")
+        .field("category_id", "1")
+        .field("description", "new product description")
+        .field("price", "99")
+        .field("location", "Melbourne")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image2.png")
+        .expect(200);
+
+      jest
+        .spyOn(upload, "uploadFile")
+        .mockReturnValue(Promise.resolve({ url: "updated image url" }));
+      jest.spyOn(upload, "deleteFile").mockReturnValue(
+        Promise.resolve({
+          result: "ok",
+        })
+      );
+
+      // Update product
+      const res = await api
+        .put("/products/51")
+        .field("title", "updated product")
+        .field("category_id", "2")
+        .field("description", "updated product description")
+        .field("price", "101")
+        .field("location", "Melbourne")
+        .field("updatedImages", [
+          "!uploaded image url",
+          "!uploaded image url",
+          "",
+        ])
+        .attach("images", "tests/image2.png")
+        .attach("images", "tests/image1.jpg")
+        .expect(200);
+
+      expect(res.body.product_id).toBe("51");
+      expect(upload.uploadFile).toHaveBeenCalledTimes(4);
+      expect(upload.deleteFile).toHaveBeenCalledTimes(2);
+
+      const dbProduct = await query(
+        `SELECT product_id, title, description, price, images, listed, location, app_user.username, category.name as category FROM product 
+          JOIN category ON product.category_id = category.category_id
+          JOIN app_user ON product.user_id = app_user.user_id
+            WHERE product_id = $1`,
+        [res.body.product_id]
+      );
+
+      expect(dbProduct.rows[0]).toEqual({
+        product_id: 51,
+        title: "updated product",
+        category: "Clothing",
+        description: "updated product description",
+        images: ["updated image url", "updated image url"],
+        price: 101,
+        location: "Melbourne",
+        listed: dbProduct.rows[0].listed,
+        username: "test",
+      });
+    });
+
+    test("Send error if more than 3 images", async () => {
+      const res = await api
+        .put("/products/51")
+        .field("title", "new product")
+        .field("category_id", "1")
+        .field("description", "new product description")
+        .field("price", "99")
+        .field("location", "Melbourne")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image2.png")
+        .expect(400);
+
+      expect(res.body.error).toBe("Maximum of 3 images allowed");
     });
   });
 });

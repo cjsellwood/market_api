@@ -230,3 +230,59 @@ export const deleteProduct = catchAsync(
     res.send();
   }
 );
+
+export const updateProduct = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    req.files = req.files as Express.Multer.File[];
+    // Send error if more than 3 files
+    if (req.files.length > 3) {
+      next(new StatusError("Maximum of 3 images allowed", 400));
+    }
+
+    const { id } = req.params;
+    const { category_id, title, description, price, location, updatedImages } =
+      req.body;
+
+    // Update the stored images
+    for (let file of req.files) {
+      // Find first file marked to be changed with exclamation mark
+      const emptyIndex = updatedImages.findIndex(
+        (el: string) => el.startsWith("!") || el === ""
+      );
+
+      // If an empty image to be changed exists
+      if (emptyIndex !== -1) {
+        const imageBuffer = await sharp(file.buffer)
+          .resize(800, 800, { fit: "inside" })
+          .webp()
+          .toBuffer();
+
+        // Upload new image
+        const imageUpload = await uploadFile(imageBuffer);
+
+        // Delete old image
+        await deleteFile(updatedImages[emptyIndex].slice(1));
+
+        // Set new image url
+        updatedImages[emptyIndex] = (imageUpload as UploadApiResponse).url;
+      }
+    }
+  
+    const result = await query(
+      `UPDATE product
+        SET title = $2, category_id = $3, description = $4, price = $5, location = $6, images = $7
+        WHERE product_id = $1 RETURNING product_id`,
+      [
+        id,
+        title,
+        category_id,
+        description,
+        price,
+        location,
+        updatedImages.filter((el: string) => el !== ""),
+      ]
+    );
+
+    res.json({ product_id: id });
+  }
+);
