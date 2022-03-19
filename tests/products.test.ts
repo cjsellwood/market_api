@@ -2,7 +2,7 @@ import { Pool } from "pg";
 import app from "../app";
 import seed from "../db/seed";
 import supertest from "supertest";
-import * as upload from "../utils/uploadFile";
+import * as upload from "../utils/cloudFiles";
 import StatusError from "../utils/StatusError";
 
 const api = supertest(app);
@@ -465,6 +465,51 @@ describe("Product routes", () => {
       expect(res.body.error).toBe(
         '"location" length must be at least 3 characters long'
       );
+    });
+  });
+
+  describe("Delete product route", () => {
+    test("Can delete a specified product", async () => {
+      // Create new product
+      jest
+        .spyOn(upload, "uploadFile")
+        .mockReturnValue(Promise.resolve({ url: "uploaded image url" }));
+
+      jest.spyOn(upload, "deleteFile").mockReturnValue(
+        Promise.resolve({
+          result: "ok",
+        })
+      );
+
+      const newProduct = await api
+        .post("/products/new")
+        .field("title", "new product")
+        .field("category_id", "1")
+        .field("description", "new product description")
+        .field("price", "99")
+        .field("location", "Melbourne")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image2.png")
+        .expect(200);
+
+      await api.delete(`/products/${newProduct.body.product_id}`).expect(200);
+
+      const dbProduct = await query(
+        `SELECT product_id, title, description, price, images, listed, location, app_user.username, category.name as category FROM product 
+          JOIN category ON product.category_id = category.category_id
+          JOIN app_user ON product.user_id = app_user.user_id
+            WHERE product_id = $1`,
+        [newProduct.body.product_id]
+      );
+
+      expect(dbProduct.rows.length).toBe(0);
+      expect(upload.deleteFile).toHaveBeenCalledWith("uploaded image url");
+      expect(upload.deleteFile).toHaveBeenCalledTimes(2);
+    });
+
+    test("Return error if trying to delete a product that does not exits", async () => {
+      const res = await api.delete(`/products/999`).expect(404);
+      expect(res.body.error).toBe("Product not found");
     });
   });
 });

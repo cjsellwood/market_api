@@ -8,7 +8,7 @@ import cloudinaryImport, {
   UploadApiResponse,
 } from "cloudinary";
 import streamifier from "streamifier";
-import { uploadFile } from "../utils/uploadFile";
+import { uploadFile, deleteFile } from "../utils/cloudFiles";
 const cloudinary = cloudinaryImport.v2;
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
@@ -177,10 +177,12 @@ export const searchProducts = catchAsync(
 export const newProduct = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     req.files = req.files as Express.Multer.File[];
+    // Send error if more than 3 files
     if (req.files.length > 3) {
       next(new StatusError("Maximum of 3 images allowed", 400));
     }
 
+    // Upload images to cloudinary
     const images = [];
     if (req.files) {
       for (let file of req.files) {
@@ -203,5 +205,28 @@ export const newProduct = catchAsync(
     );
 
     res.json(result.rows[0]);
+  }
+);
+
+export const deleteProduct = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+
+    const result = await query(
+      `DELETE FROM product WHERE product_id = $1 RETURNING images`,
+      [id]
+    );
+
+    if (!result.rows.length) {
+      return next(new StatusError("Product not found", 404));
+    }
+
+    // Delete images from cloudinary
+    const images = result.rows[0].images;
+    for (let image of images) {
+      await deleteFile(image);
+    }
+
+    res.send();
   }
 );
