@@ -44,7 +44,7 @@ describe("Product routes", () => {
 
   test("Sends data on a single product", async () => {
     const dbProduct = await query(
-      `SELECT product_id, title, description, price, images, listed, location, app_user.username, category.name as category FROM product 
+      `SELECT product_id, title, description, price, images, listed, location, app_user.user_id, app_user.username, category.name as category FROM product 
       JOIN category ON product.category_id = category.category_id
       JOIN app_user ON product.user_id = app_user.user_id
         WHERE product_id = 29`,
@@ -552,11 +552,10 @@ describe("Product routes", () => {
         .field("description", "updated product description")
         .field("price", "101")
         .field("location", "Melbourne")
-        .field("updatedImages", [
-          "!uploaded image url",
-          "!uploaded image url",
-          "",
-        ])
+        .field(
+          "updatedImages",
+          JSON.stringify(["!uploaded image url", "!uploaded image url", ""])
+        )
         .attach("images", "tests/image2.png")
         .attach("images", "tests/image1.jpg")
         .expect(200);
