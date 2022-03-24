@@ -4,6 +4,8 @@ import seed from "../db/seed";
 import supertest from "supertest";
 import * as upload from "../utils/cloudFiles";
 import StatusError from "../utils/StatusError";
+import issueJWT from "../utils/issueJWT";
+import jsonwebtoken from "jsonwebtoken";
 
 const api = supertest(app);
 
@@ -321,8 +323,11 @@ describe("Product routes", () => {
         .spyOn(upload, "uploadFile")
         .mockReturnValue(Promise.resolve({ url: "uploaded image url" }));
 
+      const jwt = issueJWT(1);
+
       const res = await api
         .post("/products/new")
+        .set("Authorization", `Bearer ${jwt.token}`)
         .field("title", "new product")
         .field("category_id", "1")
         .field("description", "new product description")
@@ -355,13 +360,55 @@ describe("Product routes", () => {
       });
     });
 
+    test("Don't add product if no authorization added", async () => {
+      const res = await api
+        .post("/products/new")
+        .field("title", "new product")
+        .field("category_id", "1")
+        .field("description", "new product description")
+        .field("price", "99")
+        .field("location", "Melbourne")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image2.png")
+        .expect(401);
+
+      expect(res.body.error).toBe("You are not logged in");
+    });
+
+    test("Don't add product if token expired", async () => {
+      const payload = {
+        sub: 1,
+        iat: Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 8,
+      };
+      const signedToken = jsonwebtoken.sign(payload, process.env.JWT_PRIVATE!, {
+        expiresIn: "7d",
+      });
+
+      const res = await api
+        .post("/products/new")
+        .set("Authorization", `Bearer ${signedToken}`)
+        .field("title", "new product")
+        .field("category_id", "1")
+        .field("description", "new product description")
+        .field("price", "99")
+        .field("location", "Melbourne")
+        .attach("images", "tests/image1.jpg")
+        .attach("images", "tests/image2.png")
+        .expect(401);
+
+      expect(res.body.error).toBe("You are not logged in");
+    });
+
     test("Send error if image upload failed", async () => {
       jest.spyOn(upload, "uploadFile").mockImplementation(() => {
         return Promise.reject(new StatusError("Image upload error", 500));
       });
 
+      const jwt = issueJWT(1);
+
       const res = await api
         .post("/products/new")
+        .set("Authorization", `Bearer ${jwt.token}`)
         .field("title", "new product")
         .field("category_id", "1")
         .field("description", "new product description")
@@ -375,8 +422,11 @@ describe("Product routes", () => {
     });
 
     test("Send error if more than 3 images", async () => {
+      const jwt = issueJWT(1);
+
       const res = await api
         .post("/products/new")
+        .set("Authorization", `Bearer ${jwt.token}`)
         .field("title", "new product")
         .field("category_id", "1")
         .field("description", "new product description")
@@ -392,8 +442,11 @@ describe("Product routes", () => {
     });
 
     test("Don't add new product if no title", async () => {
+      const jwt = issueJWT(1);
+
       const res = await api
         .post("/products/new")
+        .set("Authorization", `Bearer ${jwt.token}`)
         .field("category_id", "1")
         .field("description", "new product description")
         .field("price", "99")
@@ -406,8 +459,11 @@ describe("Product routes", () => {
     });
 
     test("Don't add if category_id invalid", async () => {
+      const jwt = issueJWT(1);
+
       const res = await api
         .post("/products/new")
+        .set("Authorization", `Bearer ${jwt.token}`)
         .field("title", "new product")
         .field("category_id", "8")
         .field("description", "new product description")
@@ -423,8 +479,11 @@ describe("Product routes", () => {
     });
 
     test("Don't add if description too short", async () => {
+      const jwt = issueJWT(1);
+
       const res = await api
         .post("/products/new")
+        .set("Authorization", `Bearer ${jwt.token}`)
         .field("title", "new product")
         .field("category_id", "1")
         .field("description", "de")
@@ -440,8 +499,11 @@ describe("Product routes", () => {
     });
 
     test("Don't add if price not a number", async () => {
+      const jwt = issueJWT(1);
+
       const res = await api
         .post("/products/new")
+        .set("Authorization", `Bearer ${jwt.token}`)
         .field("title", "new product")
         .field("category_id", "1")
         .field("description", "new product description")
@@ -455,8 +517,11 @@ describe("Product routes", () => {
     });
 
     test("Don't add if location too short", async () => {
+      const jwt = issueJWT(1);
+
       const res = await api
         .post("/products/new")
+        .set("Authorization", `Bearer ${jwt.token}`)
         .field("title", "new product")
         .field("category_id", "1")
         .field("description", "new product description")
@@ -485,8 +550,11 @@ describe("Product routes", () => {
         })
       );
 
+      const jwt = issueJWT(1);
+
       const newProduct = await api
         .post("/products/new")
+        .set("Authorization", `Bearer ${jwt.token}`)
         .field("title", "new product")
         .field("category_id", "1")
         .field("description", "new product description")
@@ -496,7 +564,11 @@ describe("Product routes", () => {
         .attach("images", "tests/image2.png")
         .expect(200);
 
-      await api.delete(`/products/${newProduct.body.product_id}`).expect(200);
+      // Delete product
+      await api
+        .delete(`/products/${newProduct.body.product_id}`)
+        .set("Authorization", `Bearer ${jwt.token}`)
+        .expect(200);
 
       const dbProduct = await query(
         `SELECT product_id, title, description, price, images, listed, location, app_user.username, category.name as category FROM product 
@@ -512,7 +584,13 @@ describe("Product routes", () => {
     });
 
     test("Return error if trying to delete a product that does not exits", async () => {
-      const res = await api.delete(`/products/999`).expect(404);
+      const jwt = issueJWT(1);
+
+      const res = await api
+        .delete(`/products/999`)
+        .set("Authorization", `Bearer ${jwt.token}`)
+        .expect(404);
+
       expect(res.body.error).toBe("Product not found");
     });
   });
@@ -523,9 +601,12 @@ describe("Product routes", () => {
         .spyOn(upload, "uploadFile")
         .mockReturnValue(Promise.resolve({ url: "uploaded image url" }));
 
+      const jwt = issueJWT(1);
+
       // Create new product
       await api
         .post("/products/new")
+        .set("Authorization", `Bearer ${jwt.token}`)
         .field("title", "new product")
         .field("category_id", "1")
         .field("description", "new product description")
@@ -547,6 +628,7 @@ describe("Product routes", () => {
       // Update product
       const res = await api
         .put("/products/51")
+        .set("Authorization", `Bearer ${jwt.token}`)
         .field("title", "updated product")
         .field("category_id", "2")
         .field("description", "updated product description")
@@ -586,8 +668,11 @@ describe("Product routes", () => {
     });
 
     test("Send error if more than 3 images", async () => {
+      const jwt = issueJWT(1);
+
       const res = await api
         .put("/products/51")
+        .set("Authorization", `Bearer ${jwt.token}`)
         .field("title", "new product")
         .field("category_id", "1")
         .field("description", "new product description")

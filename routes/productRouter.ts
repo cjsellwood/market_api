@@ -11,6 +11,7 @@ import {
 } from "../controllers/productController";
 import multer from "multer";
 import { validateNewProduct } from "../middleware/validation";
+import isLoggedIn from "../middleware/isLoggedIn";
 const upload = multer();
 
 const router = express.Router();
@@ -21,14 +22,20 @@ router.get("/random", randomProducts);
 
 router.get("/search", searchProducts);
 
-router.post("/new", upload.array("images"), validateNewProduct, newProduct);
+router.post(
+  "/new",
+  isLoggedIn,
+  upload.array("images"),
+  validateNewProduct,
+  newProduct
+);
 
 router.get("/category/:category_id", categoryProducts);
 
 router.get("/:id", singleProduct);
 
-router.delete("/:id", deleteProduct);
+router.delete("/:id", isLoggedIn, deleteProduct);
 
-router.put("/:id", upload.array("images"), updateProduct);
+router.put("/:id", isLoggedIn, upload.array("images"), updateProduct);
 
 export default router;

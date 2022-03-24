@@ -16,7 +16,6 @@ export default (req: Request, res: Response, next: NextFunction) => {
     const isValid = jsonwebtoken.verify(token, process.env.JWT_PRIVATE!);
     const payload = isValid as JwtPayload;
     res.locals.userId = Number(payload.sub);
-    res.json({ userId: Number(payload.sub) });
   } catch (error) {
     return next(new StatusError("You are not logged in", 401));
   }

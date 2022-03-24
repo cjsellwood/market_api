@@ -25,7 +25,7 @@ app.use("/products", productRouter);
 // Error handling
 app.use(
   (error: StatusError, req: Request, res: Response, next: NextFunction) => {
-    console.log("ERROR: ", error.status, " ", error.message);
+    // console.log("ERROR: ", error.status, " ", error.message);
     res.status(error.status || 500).json({ error: error.message });
   }
 );
