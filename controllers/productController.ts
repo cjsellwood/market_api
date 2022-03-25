@@ -197,11 +197,12 @@ export const newProduct = catchAsync(
     }
 
     const { category_id, title, description, price, location } = req.body;
+    const { userId } = res.locals;
 
     const result = await query(
       `INSERT INTO product(user_id, category_id, title, description, price, images, listed, location)
       VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING product_id`,
-      [1, category_id, title, description, price, images, new Date(), location]
+      [userId, category_id, title, description, price, images, new Date(), location]
     );
 
     res.json(result.rows[0]);

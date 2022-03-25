@@ -708,6 +708,10 @@ describe("Product routes", () => {
         .field("description", "new product description")
         .field("price", "99")
         .field("location", "Melbourne")
+        .field(
+          "updatedImages",
+          JSON.stringify(["!uploaded image url", "!uploaded image url", ""])
+        )
         .attach("images", "tests/image1.jpg")
         .attach("images", "tests/image1.jpg")
         .attach("images", "tests/image1.jpg")

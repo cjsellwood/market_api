@@ -10,7 +10,10 @@ import {
   updateProduct,
 } from "../controllers/productController";
 import multer from "multer";
-import { validateNewProduct } from "../middleware/validation";
+import {
+  validateNewProduct,
+  validateUpdateProduct,
+} from "../middleware/validation";
 import isLoggedIn from "../middleware/isLoggedIn";
 import isAuthor from "../middleware/isAuthor";
 const upload = multer();
@@ -37,6 +40,13 @@ router.get("/:id", singleProduct);
 
 router.delete("/:id", isLoggedIn, isAuthor, deleteProduct);
 
-router.put("/:id", isLoggedIn, isAuthor, upload.array("images"), updateProduct);
+router.put(
+  "/:id",
+  isLoggedIn,
+  isAuthor,
+  upload.array("images"),
+  validateUpdateProduct,
+  updateProduct
+);
 
 export default router;

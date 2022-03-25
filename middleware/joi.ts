@@ -26,3 +26,12 @@ export const newProductSchema = Joi.object({
   price: Joi.number().min(0).max(1000000000).required(),
   location: Joi.string().min(3).required(),
 });
+
+export const updateProductSchema = Joi.object({
+  title: Joi.string().min(4).required(),
+  category_id: Joi.number().min(1).max(7).required(),
+  description: Joi.string().min(4).required(),
+  price: Joi.number().min(0).max(1000000000).required(),
+  location: Joi.string().min(3).required(),
+  updatedImages: Joi.string().required(),
+});
