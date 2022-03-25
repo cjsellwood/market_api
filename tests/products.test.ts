@@ -583,7 +583,7 @@ describe("Product routes", () => {
       expect(upload.deleteFile).toHaveBeenCalledTimes(2);
     });
 
-    test("Return error if trying to delete a product that does not exits", async () => {
+    test("Return error if trying to delete a product that does not exist", async () => {
       const jwt = issueJWT(1);
 
       const res = await api
@@ -592,6 +592,27 @@ describe("Product routes", () => {
         .expect(404);
 
       expect(res.body.error).toBe("Product not found");
+    });
+
+    test("Can't delete product if they did not create it", async () => {
+      const dbResult = await query(
+        `SELECT product_id, title, description, price, images, listed, location, app_user.user_id, app_user.username, category.name as category FROM product 
+          JOIN category ON product.category_id = category.category_id
+          JOIN app_user ON product.user_id = app_user.user_id
+            WHERE app_user.user_id != $1
+            LIMIT 1`,
+        [1]
+      );
+      const dbProduct = dbResult.rows[0];
+
+      const jwt = issueJWT(1);
+
+      const res = await api
+        .delete(`/products/${dbProduct.product_id}`)
+        .set("Authorization", `Bearer ${jwt.token}`)
+        .expect(401);
+
+      expect(res.body.error).toBe("You are not the author");
     });
   });
 
@@ -668,10 +689,19 @@ describe("Product routes", () => {
     });
 
     test("Send error if more than 3 images", async () => {
+      const dbResult = await query(
+        `SELECT product_id, title, description, price, images, listed, location, app_user.user_id, app_user.username, category.name as category FROM product 
+          JOIN category ON product.category_id = category.category_id
+          JOIN app_user ON product.user_id = app_user.user_id
+            WHERE app_user.user_id = $1
+            LIMIT 1`,
+        [1]
+      );
+      const dbProduct = dbResult.rows[0];
       const jwt = issueJWT(1);
 
       const res = await api
-        .put("/products/51")
+        .put(`/products/${dbProduct.product_id}`)
         .set("Authorization", `Bearer ${jwt.token}`)
         .field("title", "new product")
         .field("category_id", "1")
