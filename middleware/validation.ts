@@ -1,17 +1,32 @@
 import { NextFunction, Request, Response } from "express";
-import { loginSchema, registerSchema, newProductSchema } from "./joi";
+import {
+  loginSchema,
+  registerSchema,
+  newProductSchema,
+  updateProductSchema,
+} from "./joi";
 import StatusError from "../utils/StatusError";
+import Joi, { valid } from "joi";
+
+const validate = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+  schema: Joi.ObjectSchema
+) => {
+  const isValid = schema.validate(req.body);
+  if (isValid.error) {
+    return next(new StatusError(isValid.error.message, 400));
+  }
+  next();
+};
 
 export const validateRegister = (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const isValid = registerSchema.validate(req.body);
-  if (isValid.error) {
-    return next(new StatusError(isValid.error.message, 400));
-  }
-  next();
+  validate(req, res, next, registerSchema);
 };
 
 export const validateLogin = (
@@ -19,11 +34,7 @@ export const validateLogin = (
   res: Response,
   next: NextFunction
 ) => {
-  const isValid = loginSchema.validate(req.body);
-  if (isValid.error) {
-    return next(new StatusError(isValid.error.message, 400));
-  }
-  next();
+  validate(req, res, next, loginSchema);
 };
 
 export const validateNewProduct = (
@@ -31,9 +42,13 @@ export const validateNewProduct = (
   res: Response,
   next: NextFunction
 ) => {
-  const isValid = newProductSchema.validate(req.body);
-  if (isValid.error) {
-    return next(new StatusError(isValid.error.message, 400));
-  }
-  next();
+  validate(req, res, next, newProductSchema);
+};
+
+export const validateUpdateProduct = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  validate(req, res, next, updateProductSchema);
 };

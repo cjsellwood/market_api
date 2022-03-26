@@ -73,9 +73,3 @@ export const loginUser = catchAsync(
     });
   }
 );
-
-export const protectedRoute = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    res.json({ user_id: res.locals.userId });
-  }
-);

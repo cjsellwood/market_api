@@ -32,7 +32,7 @@ export const singleProduct = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     const result = await query(
-      `SELECT product_id, title, description, price, images, listed, location, app_user.username, category.name as category FROM product 
+      `SELECT product_id, title, description, price, images, listed, location, app_user.user_id, app_user.username, category.name as category FROM product 
       JOIN category ON product.category_id = category.category_id
       JOIN app_user ON product.user_id = app_user.user_id
         WHERE product_id = $1`,
@@ -197,11 +197,12 @@ export const newProduct = catchAsync(
     }
 
     const { category_id, title, description, price, location } = req.body;
+    const { userId } = res.locals;
 
     const result = await query(
       `INSERT INTO product(user_id, category_id, title, description, price, images, listed, location)
       VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING product_id`,
-      [1, category_id, title, description, price, images, new Date(), location]
+      [userId, category_id, title, description, price, images, new Date(), location]
     );
 
     res.json(result.rows[0]);
@@ -217,17 +218,13 @@ export const deleteProduct = catchAsync(
       [id]
     );
 
-    if (!result.rows.length) {
-      return next(new StatusError("Product not found", 404));
-    }
-
     // Delete images from cloudinary
     const images = result.rows[0].images;
     for (let image of images) {
       await deleteFile(image);
     }
 
-    res.send();
+    res.json({ message: "Deleted" });
   }
 );
 
@@ -240,8 +237,16 @@ export const updateProduct = catchAsync(
     }
 
     const { id } = req.params;
-    const { category_id, title, description, price, location, updatedImages } =
-      req.body;
+    const {
+      category_id,
+      title,
+      description,
+      price,
+      location,
+      updatedImages: imagesString,
+    } = req.body;
+
+    const updatedImages = JSON.parse(imagesString);
 
     // Update the stored images
     for (let file of req.files) {
@@ -267,7 +272,7 @@ export const updateProduct = catchAsync(
         updatedImages[emptyIndex] = (imageUpload as UploadApiResponse).url;
       }
     }
-  
+
     const result = await query(
       `UPDATE product
         SET title = $2, category_id = $3, description = $4, price = $5, location = $6, images = $7
@@ -279,7 +284,7 @@ export const updateProduct = catchAsync(
         description,
         price,
         location,
-        updatedImages.filter((el: string) => el !== ""),
+        updatedImages.filter((el: string) => !el.startsWith("!") && el !== ""),
       ]
     );
 
