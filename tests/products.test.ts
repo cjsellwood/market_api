@@ -317,6 +317,73 @@ describe("Product routes", () => {
     });
   });
 
+  describe("User products route", () => {
+    test("Returns products created by user", async () => {
+      const allResult = await query(
+        `SELECT product_id, user_id, title, description, price, images[1] as image, location, listed
+      FROM product ORDER BY listed DESC`,
+        []
+      );
+      const allProducts = allResult.rows;
+      for (let product of allProducts) {
+        product.listed = product.listed.toISOString();
+      }
+
+      const filteredProducts = allProducts.filter(
+        (product) => product.user_id === 1
+      );
+
+      for (let product of filteredProducts) {
+        delete product.user_id;
+      }
+
+      const jwt = issueJWT(1);
+
+      const res = await api
+        .get("/products/user")
+        .set("Authorization", `Bearer ${jwt.token}`)
+        .expect(200);
+
+      expect(res.body.products).toEqual(filteredProducts);
+      expect(res.body.count).toEqual(filteredProducts.length.toString());
+    });
+
+    test("Returns page 3 of products created by user", async () => {
+      await query(
+        `UPDATE product SET user_id = 1 WHERE product_id > 0`,
+        []
+      );
+
+      const allResult = await query(
+        `SELECT product_id, user_id, title, description, price, images[1] as image, location, listed
+      FROM product ORDER BY listed DESC`,
+        []
+      );
+      const allProducts = allResult.rows;
+      for (let product of allProducts) {
+        product.listed = product.listed.toISOString();
+      }
+
+      const filteredProducts = allProducts.filter(
+        (product) => product.user_id === 1
+      );
+
+      for (let product of filteredProducts) {
+        delete product.user_id;
+      }
+
+      const jwt = issueJWT(1);
+
+      const res = await api
+        .get("/products/user?page=3")
+        .set("Authorization", `Bearer ${jwt.token}`)
+        .expect(200);
+
+      expect(res.body.products.length).toBe(10);
+      expect(res.body.count).toEqual(filteredProducts.length.toString());
+    });
+  });
+
   describe("New product route", () => {
     test("Can add new product", async () => {
       jest

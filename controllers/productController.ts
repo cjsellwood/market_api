@@ -174,6 +174,38 @@ export const searchProducts = catchAsync(
   }
 );
 
+export const userProducts = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    let { page, count } = req.query;
+    if (!page) {
+      page = "1";
+    }
+
+    const offset = (Number(page) - 1) * 20;
+
+    // Sort by most recent by default and limit to 20
+    const result = await query(
+      `SELECT product_id, title, description, price, images[1] as image, location, listed
+        FROM product WHERE user_id = $2
+        ORDER BY listed DESC LIMIT 20 OFFSET $1`,
+      [offset, res.locals.userId]
+    );
+
+    // Get amount of products for pagination on front end
+    if (result.rows.length < 20 && page === "1") {
+      count = result.rows.length.toString();
+    } else if (!count) {
+      const countResult = await query(
+        `SELECT COUNT(product_id) FROM product`,
+        []
+      );
+      count = countResult.rows[0].count;
+    }
+
+    res.json({ products: result.rows, count });
+  }
+);
+
 export const newProduct = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     req.files = req.files as Express.Multer.File[];
@@ -202,7 +234,16 @@ export const newProduct = catchAsync(
     const result = await query(
       `INSERT INTO product(user_id, category_id, title, description, price, images, listed, location)
       VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING product_id`,
-      [userId, category_id, title, description, price, images, new Date(), location]
+      [
+        userId,
+        category_id,
+        title,
+        description,
+        price,
+        images,
+        new Date(),
+        location,
+      ]
     );
 
     res.json(result.rows[0]);
