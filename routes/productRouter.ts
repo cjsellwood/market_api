@@ -8,6 +8,7 @@ import {
   newProduct,
   deleteProduct,
   updateProduct,
+  userProducts,
 } from "../controllers/productController";
 import multer from "multer";
 import {
@@ -25,6 +26,8 @@ router.get("/", allProducts);
 router.get("/random", randomProducts);
 
 router.get("/search", searchProducts);
+
+router.get("/user", isLoggedIn, userProducts);
 
 router.post(
   "/new",
