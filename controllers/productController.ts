@@ -3,12 +3,10 @@ import sharp from "sharp";
 import { query } from "../db/db";
 import catchAsync from "../utils/catchAsync";
 import StatusError from "../utils/StatusError";
-import cloudinaryImport, {
-  UploadApiErrorResponse,
-  UploadApiResponse,
-} from "cloudinary";
-import streamifier from "streamifier";
+import jsonwebtoken, { JwtPayload } from "jsonwebtoken";
+import cloudinaryImport, { UploadApiResponse } from "cloudinary";
 import { uploadFile, deleteFile } from "../utils/cloudFiles";
+
 const cloudinary = cloudinaryImport.v2;
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
@@ -32,9 +30,10 @@ export const singleProduct = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     const result = await query(
-      `SELECT product_id, title, description, price, images, listed, location, app_user.user_id, app_user.username, category.name as category FROM product 
-      JOIN category ON product.category_id = category.category_id
-      JOIN app_user ON product.user_id = app_user.user_id
+      `SELECT product_id, title, description, price, images, listed, location, app_user.user_id, app_user.username, category.name as category
+        FROM product 
+        JOIN category ON product.category_id = category.category_id
+        JOIN app_user ON product.user_id = app_user.user_id
         WHERE product_id = $1`,
       [id]
     );
@@ -44,6 +43,32 @@ export const singleProduct = catchAsync(
     }
 
     const product = result.rows[0];
+
+    const authorization = req.headers.authorization;
+    if (authorization) {
+      const token = authorization.split(" ")[1];
+      const isValid = jsonwebtoken.verify(token, process.env.JWT_PRIVATE!);
+      const payload = isValid as JwtPayload;
+      const userId = Number(payload.sub);
+
+      // If author of product
+      if (userId === product.user_id) {
+        const dbMessages = await query(
+          `SELECT sender, receiver, text, time FROM message
+            WHERE product_id = $1`,
+          [id]
+        );
+        product.messages = dbMessages.rows;
+      } else {
+        const dbMessages = await query(
+          `SELECT sender, receiver, text, time FROM message
+            WHERE product_id = $1 AND ((sender = $2 AND receiver = $3) OR (sender = $3 AND receiver = $2))`,
+          [id, product.user_id, userId]
+        );
+        product.messages = dbMessages.rows;
+      }
+    }
+
     res.json(product);
   }
 );

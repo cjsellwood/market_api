@@ -3,10 +3,9 @@ import {
   randBetweenDate,
   randCity,
   randEmail,
-  randImg,
   randProductDescription,
   randProductName,
-  randText,
+  randTextRange,
   randUserName,
 } from "@ngneat/falso";
 
@@ -168,7 +167,7 @@ const seed = async (pool: Pool) => {
         29,
         sender,
         receiver,
-        randText(),
+        randTextRange({ min: 8, max: 128 }),
         randBetweenDate({ from: new Date("01/01/2022"), to: new Date() }),
       ]
     );
@@ -190,7 +189,7 @@ const seed = async (pool: Pool) => {
         29,
         sender,
         receiver,
-        randText(),
+        randTextRange({ min: 8, max: 128 }),
         randBetweenDate({ from: new Date("01/01/2022"), to: new Date() }),
       ]
     );
