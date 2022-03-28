@@ -55,14 +55,16 @@ export const singleProduct = catchAsync(
       if (userId === product.user_id) {
         const dbMessages = await query(
           `SELECT sender, receiver, text, time FROM message
-            WHERE product_id = $1`,
+            WHERE product_id = $1
+            ORDER BY time ASC`,
           [id]
         );
         product.messages = dbMessages.rows;
       } else {
         const dbMessages = await query(
           `SELECT sender, receiver, text, time FROM message
-            WHERE product_id = $1 AND ((sender = $2 AND receiver = $3) OR (sender = $3 AND receiver = $2))`,
+            WHERE product_id = $1 AND ((sender = $2 AND receiver = $3) OR (sender = $3 AND receiver = $2))
+            ORDER BY time ASC`,
           [id, product.user_id, userId]
         );
         product.messages = dbMessages.rows;
@@ -236,7 +238,7 @@ export const newProduct = catchAsync(
     req.files = req.files as Express.Multer.File[];
     // Send error if more than 3 files
     if (req.files.length > 3) {
-      next(new StatusError("Maximum of 3 images allowed", 400));
+      return next(new StatusError("Maximum of 3 images allowed", 400));
     }
 
     // Upload images to cloudinary
@@ -355,5 +357,21 @@ export const updateProduct = catchAsync(
     );
 
     res.json({ product_id: id });
+  }
+);
+
+export const saveMessage = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { text, receiver } = req.body;
+    const { id } = req.params;
+    const { userId } = res.locals;
+
+    await query(
+      `INSERT into message(product_id, sender, receiver, text, time)
+        VALUES ($1, $2, $3, $4, $5)`,
+      [id, userId, receiver, text, new Date()]
+    );
+
+    res.json({ message: "Success" });
   }
 );

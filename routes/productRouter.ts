@@ -9,6 +9,7 @@ import {
   deleteProduct,
   updateProduct,
   userProducts,
+  saveMessage,
 } from "../controllers/productController";
 import multer from "multer";
 import {
@@ -42,6 +43,8 @@ router.get("/category/:category_id", categoryProducts);
 router.get("/:id", singleProduct);
 
 router.delete("/:id", isLoggedIn, isAuthor, deleteProduct);
+
+router.post("/:id", isLoggedIn, saveMessage);
 
 router.put(
   "/:id",

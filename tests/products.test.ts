@@ -731,7 +731,8 @@ describe("Product routes", () => {
     test("Updates a product", async () => {
       jest
         .spyOn(upload, "uploadFile")
-        .mockReturnValue(Promise.resolve({ url: "uploaded image url" }));
+        .mockReturnValueOnce(Promise.resolve({ url: "uploaded image url" }))
+        .mockReturnValueOnce(Promise.resolve({ url: "uploaded image url" }));
 
       const jwt = issueJWT(1);
 
@@ -750,7 +751,8 @@ describe("Product routes", () => {
 
       jest
         .spyOn(upload, "uploadFile")
-        .mockReturnValue(Promise.resolve({ url: "updated image url" }));
+        .mockReturnValueOnce(Promise.resolve({ url: "updated image url" }))
+        .mockReturnValueOnce(Promise.resolve({ url: "updated image url" }));
       jest.spyOn(upload, "deleteFile").mockReturnValue(
         Promise.resolve({
           result: "ok",
@@ -830,6 +832,66 @@ describe("Product routes", () => {
         .expect(400);
 
       expect(res.body.error).toBe("Maximum of 3 images allowed");
+    });
+  });
+
+  describe("Save message route", () => {
+    test("Saves new message to server", async () => {
+      const dbProduct = await query(
+        `SELECT product_id, title, description, price, images, listed, location, app_user.user_id, app_user.username, category.name as category FROM product 
+        JOIN category ON product.category_id = category.category_id
+        JOIN app_user ON product.user_id = app_user.user_id
+          WHERE product_id = 29`,
+        []
+      );
+      const authorId = dbProduct.rows[0].user_id;
+      const userId = (authorId % 10) + 1;
+
+      const jwt = issueJWT(userId);
+
+      const res = await api
+        .post("/products/29")
+        .set("Authorization", `Bearer ${jwt.token}`)
+        .send({ text: "New message", receiver: authorId })
+        .expect(200);
+
+      expect(res.body.message).toBe("Success");
+
+      const dbMessages = await query(`SELECT * FROM message`, []);
+      expect(dbMessages.rows.length).toBe(21);
+      expect(dbMessages.rows.at(-1).product_id).toBe(29);
+      expect(dbMessages.rows.at(-1).sender).toBe(userId);
+      expect(dbMessages.rows.at(-1).receiver).toBe(authorId);
+      expect(dbMessages.rows.at(-1).text).toBe("New message");
+    });
+
+    test("Saves message when user if author", async () => {
+      const dbProduct = await query(
+        `SELECT product_id, title, description, price, images, listed, location, app_user.user_id, app_user.username, category.name as category FROM product 
+        JOIN category ON product.category_id = category.category_id
+        JOIN app_user ON product.user_id = app_user.user_id
+          WHERE product_id = 29`,
+        []
+      );
+      const authorId = dbProduct.rows[0].user_id;
+      const receiverId = (authorId % 10) + 1;
+
+      const jwt = issueJWT(authorId);
+
+      const res = await api
+        .post("/products/29")
+        .set("Authorization", `Bearer ${jwt.token}`)
+        .send({ text: "New message", receiver: receiverId })
+        .expect(200);
+
+      expect(res.body.message).toBe("Success");
+
+      const dbMessages = await query(`SELECT * FROM message`, []);
+      expect(dbMessages.rows.length).toBe(21);
+      expect(dbMessages.rows.at(-1).product_id).toBe(29);
+      expect(dbMessages.rows.at(-1).sender).toBe(authorId);
+      expect(dbMessages.rows.at(-1).receiver).toBe(receiverId);
+      expect(dbMessages.rows.at(-1).text).toBe("New message");
     });
   });
 });
