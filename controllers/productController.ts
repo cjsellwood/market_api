@@ -54,7 +54,8 @@ export const singleProduct = catchAsync(
       // If author of product
       if (userId === product.user_id) {
         const dbMessages = await query(
-          `SELECT sender, receiver, text, time FROM message
+          `SELECT sender, receiver, text, time, app_user.username as "senderName" FROM message
+            JOIN app_user ON message.sender = app_user.user_id
             WHERE product_id = $1
             ORDER BY time ASC`,
           [id]

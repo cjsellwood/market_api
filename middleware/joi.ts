@@ -35,3 +35,8 @@ export const updateProductSchema = Joi.object({
   location: Joi.string().min(3).required(),
   updatedImages: Joi.string().required(),
 });
+
+export const newMessageSchema = Joi.object({
+  receiver: Joi.number().min(1).required(),
+  text: Joi.string().required().max(1000),
+});
