@@ -32,37 +32,83 @@ describe("Product routes", () => {
     await pool.end();
   });
 
-  test("Return 20 random products", async () => {
-    const res = await api.get("/products/random").expect(200);
+  describe("Random products route", () => {
+    test("Return 20 random products", async () => {
+      const res = await api.get("/products/random").expect(200);
 
-    expect(res.body.length).toBe(20);
-    const ids = res.body.map(
-      (product: { product_id: number }) => product.product_id
-    );
+      expect(res.body.length).toBe(20);
+      const ids = res.body.map(
+        (product: { product_id: number }) => product.product_id
+      );
 
-    const sorted = [...ids].sort((a, b) => a - b);
-    expect(ids).not.toEqual(sorted);
+      const sorted = [...ids].sort((a, b) => a - b);
+      expect(ids).not.toEqual(sorted);
+    });
   });
 
-  test("Sends data on a single product", async () => {
-    const dbProduct = await query(
-      `SELECT product_id, title, description, price, images, listed, location, app_user.user_id, app_user.username, category.name as category FROM product 
-      JOIN category ON product.category_id = category.category_id
-      JOIN app_user ON product.user_id = app_user.user_id
-        WHERE product_id = 29`,
-      []
-    );
-    const expectedProduct = dbProduct.rows[0];
-    expectedProduct.listed = expectedProduct.listed.toISOString();
-    const res = await api.get("/products/29").expect(200);
+  describe("Single product route", () => {
+    test("Sends data on a single product", async () => {
+      const dbProduct = await query(
+        `SELECT product_id, title, description, price, images, listed, location, app_user.user_id, app_user.username, category.name as category FROM product 
+        JOIN category ON product.category_id = category.category_id
+        JOIN app_user ON product.user_id = app_user.user_id
+          WHERE product_id = 29`,
+        []
+      );
+      const expectedProduct = dbProduct.rows[0];
+      expectedProduct.listed = expectedProduct.listed.toISOString();
+      const res = await api.get("/products/29").expect(200);
 
-    expect(res.body).toEqual(expectedProduct);
-  });
+      expect(res.body).toEqual(expectedProduct);
+    });
 
-  test("Send error if product not in database", async () => {
-    const res = await api.get("/products/99").expect(404);
+    test("Send error if product not in database", async () => {
+      const res = await api.get("/products/99").expect(404);
 
-    expect(res.body.error).toBe("Product not found");
+      expect(res.body.error).toBe("Product not found");
+    });
+
+    test("Returns messages about the product from the user if logged in", async () => {
+      const dbProduct = await query(
+        `SELECT product_id, title, description, price, images, listed, location, app_user.user_id, app_user.username, category.name as category FROM product 
+        JOIN category ON product.category_id = category.category_id
+        JOIN app_user ON product.user_id = app_user.user_id
+          WHERE product_id = 29`,
+        []
+      );
+      const authorId = dbProduct.rows[0].user_id;
+      const userId = (authorId % 10) + 1;
+
+      const jwt = issueJWT(userId);
+
+      const res = await api
+        .get("/products/29")
+        .set("Authorization", `Bearer ${jwt.token}`)
+        .expect(200);
+
+      expect(res.body.messages).toBeDefined();
+      expect(res.body.messages.length).toBe(10);
+    });
+
+    test("Returns all messages to author of product", async () => {
+      const dbProduct = await query(
+        `SELECT product_id, title, description, price, images, listed, location, app_user.user_id, app_user.username, category.name as category FROM product 
+        JOIN category ON product.category_id = category.category_id
+        JOIN app_user ON product.user_id = app_user.user_id
+          WHERE product_id = 29`,
+        []
+      );
+      const authorId = dbProduct.rows[0].user_id;
+      const jwt = issueJWT(authorId);
+
+      const res = await api
+        .get("/products/29")
+        .set("Authorization", `Bearer ${jwt.token}`)
+        .expect(200);
+
+      expect(res.body.messages).toBeDefined();
+      expect(res.body.messages.length).toBe(20);
+    });
   });
 
   describe("All Products Route", () => {
@@ -142,6 +188,7 @@ describe("Product routes", () => {
     });
 
     test("Returning count if number of products less than 20", async () => {
+      await query(`DELETE FROM message WHERE product_id > 10`, []);
       await query(`DELETE FROM product WHERE product_id > 10`, []);
       const res = await api.get("/products").expect(200);
 
@@ -349,10 +396,7 @@ describe("Product routes", () => {
     });
 
     test("Returns page 3 of products created by user", async () => {
-      await query(
-        `UPDATE product SET user_id = 1 WHERE product_id > 0`,
-        []
-      );
+      await query(`UPDATE product SET user_id = 1 WHERE product_id > 0`, []);
 
       const allResult = await query(
         `SELECT product_id, user_id, title, description, price, images[1] as image, location, listed
@@ -687,7 +731,8 @@ describe("Product routes", () => {
     test("Updates a product", async () => {
       jest
         .spyOn(upload, "uploadFile")
-        .mockReturnValue(Promise.resolve({ url: "uploaded image url" }));
+        .mockReturnValueOnce(Promise.resolve({ url: "uploaded image url" }))
+        .mockReturnValueOnce(Promise.resolve({ url: "uploaded image url" }));
 
       const jwt = issueJWT(1);
 
@@ -706,7 +751,8 @@ describe("Product routes", () => {
 
       jest
         .spyOn(upload, "uploadFile")
-        .mockReturnValue(Promise.resolve({ url: "updated image url" }));
+        .mockReturnValueOnce(Promise.resolve({ url: "updated image url" }))
+        .mockReturnValueOnce(Promise.resolve({ url: "updated image url" }));
       jest.spyOn(upload, "deleteFile").mockReturnValue(
         Promise.resolve({
           result: "ok",
@@ -786,6 +832,66 @@ describe("Product routes", () => {
         .expect(400);
 
       expect(res.body.error).toBe("Maximum of 3 images allowed");
+    });
+  });
+
+  describe("Save message route", () => {
+    test("Saves new message to server", async () => {
+      const dbProduct = await query(
+        `SELECT product_id, title, description, price, images, listed, location, app_user.user_id, app_user.username, category.name as category FROM product 
+        JOIN category ON product.category_id = category.category_id
+        JOIN app_user ON product.user_id = app_user.user_id
+          WHERE product_id = 29`,
+        []
+      );
+      const authorId = dbProduct.rows[0].user_id;
+      const userId = (authorId % 10) + 1;
+
+      const jwt = issueJWT(userId);
+
+      const res = await api
+        .post("/products/29")
+        .set("Authorization", `Bearer ${jwt.token}`)
+        .send({ text: "New message", receiver: authorId })
+        .expect(200);
+
+      expect(res.body.message).toBe("Success");
+
+      const dbMessages = await query(`SELECT * FROM message`, []);
+      expect(dbMessages.rows.length).toBe(21);
+      expect(dbMessages.rows.at(-1).product_id).toBe(29);
+      expect(dbMessages.rows.at(-1).sender).toBe(userId);
+      expect(dbMessages.rows.at(-1).receiver).toBe(authorId);
+      expect(dbMessages.rows.at(-1).text).toBe("New message");
+    });
+
+    test("Saves message when user if author", async () => {
+      const dbProduct = await query(
+        `SELECT product_id, title, description, price, images, listed, location, app_user.user_id, app_user.username, category.name as category FROM product 
+        JOIN category ON product.category_id = category.category_id
+        JOIN app_user ON product.user_id = app_user.user_id
+          WHERE product_id = 29`,
+        []
+      );
+      const authorId = dbProduct.rows[0].user_id;
+      const receiverId = (authorId % 10) + 1;
+
+      const jwt = issueJWT(authorId);
+
+      const res = await api
+        .post("/products/29")
+        .set("Authorization", `Bearer ${jwt.token}`)
+        .send({ text: "New message", receiver: receiverId })
+        .expect(200);
+
+      expect(res.body.message).toBe("Success");
+
+      const dbMessages = await query(`SELECT * FROM message`, []);
+      expect(dbMessages.rows.length).toBe(21);
+      expect(dbMessages.rows.at(-1).product_id).toBe(29);
+      expect(dbMessages.rows.at(-1).sender).toBe(authorId);
+      expect(dbMessages.rows.at(-1).receiver).toBe(receiverId);
+      expect(dbMessages.rows.at(-1).text).toBe("New message");
     });
   });
 });

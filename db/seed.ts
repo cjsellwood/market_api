@@ -3,14 +3,15 @@ import {
   randBetweenDate,
   randCity,
   randEmail,
-  randImg,
   randProductDescription,
   randProductName,
+  randTextRange,
   randUserName,
 } from "@ngneat/falso";
 
 const seed = async (pool: Pool) => {
   // Clear any existing tables
+  await pool.query("DROP TABLE IF EXISTS message");
   await pool.query("DROP TABLE IF EXISTS product");
   await pool.query("DROP TABLE IF EXISTS category");
   await pool.query("DROP TABLE IF EXISTS app_user");
@@ -131,6 +132,65 @@ const seed = async (pool: Pool) => {
         product.images,
         product.listed,
         product.location,
+      ]
+    );
+  }
+
+  // Create messages table
+  await pool.query(`CREATE TABLE message (
+    message_id SERIAL PRIMARY KEY,
+    product_id INT NOT NULL REFERENCES product(product_id),
+    sender INT NOT NULL REFERENCES app_user(user_id),
+    receiver INT NOT NULL REFERENCES app_user(user_id),
+    text TEXT NOT NULL,
+    time TIMESTAMP NOT NULL
+  )`);
+
+  const productQuery = await pool.query(
+    "SELECT user_id FROM product WHERE product_id = 29"
+  );
+  const authorId = productQuery.rows[0].user_id;
+
+  const userId = (authorId % 10) + 1;
+  for (let i = 0; i < 10; i++) {
+    const sender = Math.random() > 0.5 ? authorId : userId;
+    let receiver;
+    if (sender === authorId) {
+      receiver = userId;
+    } else {
+      receiver = authorId;
+    }
+    await pool.query(
+      `INSERT INTO message(product_id, sender, receiver, text, time)
+        VALUES ($1, $2, $3, $4, $5)`,
+      [
+        29,
+        sender,
+        receiver,
+        randTextRange({ min: 8, max: 128 }),
+        randBetweenDate({ from: new Date("01/01/2022"), to: new Date() }),
+      ]
+    );
+  }
+
+  const userId2 = ((authorId + 1) % 10) + 1;
+  for (let i = 0; i < 10; i++) {
+    const sender = Math.random() > 0.5 ? authorId : userId2;
+    let receiver;
+    if (sender === authorId) {
+      receiver = userId2;
+    } else {
+      receiver = authorId;
+    }
+    await pool.query(
+      `INSERT INTO message(product_id, sender, receiver, text, time)
+        VALUES ($1, $2, $3, $4, $5)`,
+      [
+        29,
+        sender,
+        receiver,
+        randTextRange({ min: 8, max: 128 }),
+        randBetweenDate({ from: new Date("01/01/2022"), to: new Date() }),
       ]
     );
   }

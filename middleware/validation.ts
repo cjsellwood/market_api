@@ -4,9 +4,10 @@ import {
   registerSchema,
   newProductSchema,
   updateProductSchema,
+  newMessageSchema,
 } from "./joi";
 import StatusError from "../utils/StatusError";
-import Joi, { valid } from "joi";
+import Joi from "joi";
 
 const validate = (
   req: Request,
@@ -51,4 +52,12 @@ export const validateUpdateProduct = (
   next: NextFunction
 ) => {
   validate(req, res, next, updateProductSchema);
+};
+
+export const validateMessage = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  validate(req, res, next, newMessageSchema);
 };

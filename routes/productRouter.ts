@@ -9,9 +9,11 @@ import {
   deleteProduct,
   updateProduct,
   userProducts,
+  saveMessage,
 } from "../controllers/productController";
 import multer from "multer";
 import {
+  validateMessage,
   validateNewProduct,
   validateUpdateProduct,
 } from "../middleware/validation";
@@ -42,6 +44,8 @@ router.get("/category/:category_id", categoryProducts);
 router.get("/:id", singleProduct);
 
 router.delete("/:id", isLoggedIn, isAuthor, deleteProduct);
+
+router.post("/:id", isLoggedIn, validateMessage, saveMessage);
 
 router.put(
   "/:id",
