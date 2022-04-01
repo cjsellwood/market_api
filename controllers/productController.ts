@@ -6,6 +6,7 @@ import StatusError from "../utils/StatusError";
 import jsonwebtoken, { JwtPayload } from "jsonwebtoken";
 import cloudinaryImport, { UploadApiResponse } from "cloudinary";
 import { uploadFile, deleteFile } from "../utils/cloudFiles";
+import verifySort from "../utils/verifySort";
 
 const cloudinary = cloudinaryImport.v2;
 cloudinary.config({
@@ -78,7 +79,7 @@ export const singleProduct = catchAsync(
 
 export const allProducts = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    let { page, count } = req.query;
+    let { page, count, sort } = req.query;
     if (!page) {
       page = "1";
     }
@@ -88,8 +89,13 @@ export const allProducts = catchAsync(
     // Sort by most recent by default and limit to 20
     const result = await query(
       `SELECT product_id, title, description, price, images[1] as image, location, listed
-        FROM product ORDER BY listed DESC LIMIT 20 OFFSET $1`,
-      [offset]
+        FROM product ORDER BY 
+        CASE WHEN $2 = 'no' THEN listed END DESC,
+        CASE WHEN $2 = 'on' THEN listed END ASC,
+        CASE WHEN $2 = 'lh' THEN price END ASC,
+        CASE WHEN $2 = 'hl' THEN price END DESC
+        LIMIT 20 OFFSET $1`,
+      [offset, verifySort(sort as string)]
     );
 
     // Get amount of products for pagination on front end
@@ -109,7 +115,7 @@ export const allProducts = catchAsync(
 
 export const categoryProducts = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    let { page, count } = req.query;
+    let { page, count, sort } = req.query;
     if (!page) {
       page = "1";
     }
@@ -124,8 +130,13 @@ export const categoryProducts = catchAsync(
         FROM product 
         JOIN category on product.category_id = category.category_id
         WHERE category.category_id = $2
-        ORDER BY listed DESC LIMIT 20 OFFSET $1`,
-      [offset, category_id]
+        ORDER BY
+        CASE WHEN $3 = 'no' THEN listed END DESC,
+        CASE WHEN $3 = 'on' THEN listed END ASC,
+        CASE WHEN $3 = 'lh' THEN price END ASC,
+        CASE WHEN $3 = 'hl' THEN price END DESC
+        LIMIT 20 OFFSET $1`,
+      [offset, category_id, verifySort(sort as string)]
     );
 
     // Get amount of products for pagination on front end
@@ -148,7 +159,7 @@ export const categoryProducts = catchAsync(
 
 export const searchProducts = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    let { page, count, q, category: category_id } = req.query;
+    let { page, count, q, category: category_id, sort } = req.query;
     if (!page) {
       page = "1";
     }
@@ -162,8 +173,18 @@ export const searchProducts = catchAsync(
         `SELECT product_id, title, description, price, images[1] as image, location, listed
           FROM product 
           WHERE (LOWER(title) LIKE $2 OR LOWER(description) LIKE $2) AND category_id = $3
-          ORDER BY listed DESC LIMIT 20 OFFSET $1`,
-        [offset, `%${(q as string).toLowerCase()}%`, category_id]
+          ORDER BY
+          CASE WHEN $4 = 'no' THEN listed END DESC,
+          CASE WHEN $4 = 'on' THEN listed END ASC,
+          CASE WHEN $4 = 'lh' THEN price END ASC,
+          CASE WHEN $4 = 'hl' THEN price END DESC
+          LIMIT 20 OFFSET $1`,
+        [
+          offset,
+          `%${(q as string).toLowerCase()}%`,
+          category_id,
+          verifySort(sort as string),
+        ]
       );
     } else {
       // Sort by most recent by default and limit to 20
@@ -171,8 +192,13 @@ export const searchProducts = catchAsync(
         `SELECT product_id, title, description, price, images[1] as image, location, listed
           FROM product 
           WHERE LOWER(title) LIKE $2 OR LOWER(description) LIKE $2
-          ORDER BY listed DESC LIMIT 20 OFFSET $1`,
-        [offset, `%${(q as string).toLowerCase()}%`]
+          ORDER BY 
+          CASE WHEN $3 = 'no' THEN listed END DESC,
+          CASE WHEN $3 = 'on' THEN listed END ASC,
+          CASE WHEN $3 = 'lh' THEN price END ASC,
+          CASE WHEN $3 = 'hl' THEN price END DESC
+          LIMIT 20 OFFSET $1`,
+        [offset, `%${(q as string).toLowerCase()}%`, verifySort(sort as string)]
       );
     }
 
