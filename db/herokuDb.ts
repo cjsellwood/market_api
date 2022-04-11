@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import { Pool } from "pg";
-import seed from "./seed";
+import herokuSeed from "./herokuSeed";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -11,7 +11,7 @@ const pool = new Pool({
 });
 
 const sqlConnection = async () => {
-  await seed(pool);
+  await herokuSeed(pool);
   await pool.end();
 };
 
