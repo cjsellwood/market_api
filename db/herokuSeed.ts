@@ -141,6 +141,7 @@ const herokuSeed = async (pool: Pool) => {
 
   for (let i = 0; i < 50; i++) {
     const category_id = Math.floor(Math.random() * 7) + 1;
+    const imageNumber = Math.floor(Math.random() * 4);
     products.push({
       user_id: Math.floor(Math.random() * 10 + 1),
       category_id: category_id,
@@ -148,9 +149,9 @@ const herokuSeed = async (pool: Pool) => {
       description: randProductDescription(),
       price: Math.floor(Math.random() * 1000 + 10),
       images: [
-        placeImgs[category_id - 1][Math.floor(Math.random() * 4)],
-        placeImgs[category_id - 1][Math.floor(Math.random() * 4)],
-        placeImgs[category_id - 1][Math.floor(Math.random() * 4)],
+        placeImgs[category_id - 1][imageNumber],
+        placeImgs[category_id - 1][(imageNumber + 1) % 4],
+        placeImgs[category_id - 1][(imageNumber + 2) % 4],
       ],
       listed: randBetweenDate({ from: new Date("01/01/2022"), to: new Date() }),
       location: randCity(),
