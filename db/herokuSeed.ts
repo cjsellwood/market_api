@@ -91,6 +91,11 @@ const herokuSeed = async (pool: Pool) => {
     location TEXT
   )`);
 
+  await pool.query(`CREATE INDEX product_user_id_index ON product (user_id)`);
+  await pool.query(
+    `CREATE INDEX product_category_id_index ON product (category_id)`
+  );
+
   // Default products
   const products = [];
 
@@ -184,6 +189,13 @@ const herokuSeed = async (pool: Pool) => {
     text TEXT NOT NULL,
     time TIMESTAMP NOT NULL
   )`);
+
+  // Create indexes
+  await pool.query(
+    `CREATE INDEX message_product_id_index ON message (product_id)`
+  );
+  await pool.query(`CREATE INDEX message_sender_index ON message (sender)`);
+  await pool.query(`CREATE INDEX message_receiver_index ON message (receiver)`);
 };
 
 export default herokuSeed;
