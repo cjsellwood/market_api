@@ -9,7 +9,7 @@ import {
   randUserName,
 } from "@ngneat/falso";
 
-const seed = async (pool: Pool) => {
+const herokuSeed = async (pool: Pool) => {
   // Clear any existing tables
   await pool.query("DROP TABLE IF EXISTS message");
   await pool.query("DROP TABLE IF EXISTS product");
@@ -62,7 +62,7 @@ const seed = async (pool: Pool) => {
 
   // Seed categories
   const categories = [
-    "Cars",
+    "Cars and Vehicles",
     "Clothing",
     "Computers",
     "Electronics",
@@ -100,24 +100,63 @@ const seed = async (pool: Pool) => {
   const products = [];
 
   const placeImgs = [
-    "https://placeimg.com/500/500/tech",
-    "https://placeimg.com/500/500/arch",
-    "https://placeimg.com/500/500/animals",
-    "https://placeimg.com/500/500/nature",
-    "https://placeimg.com/500/500/people",
+    [
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649653793/market/fz7hmqyyt9thyopacvgu.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649653795/market/nqukkqfqqahujdfjvyfm.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649653796/market/es5gzyaxjwhnkpnna3kf.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654020/market/d2jermwsdtcpg1hlvczd.webp",
+    ],
+    [
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654022/market/zpvx5juzrgsihdx4buze.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654023/market/zzxaqjued8vtf15nnein.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654148/market/n92nktzfesi5ccrx0jnx.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654150/market/znfm5tmzc4lrqrumjawg.webp",
+    ],
+    [
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654222/market/avcbairrh1bwt6tvccgp.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654224/market/nruq7v7tmtn6icgyvgu9.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654225/market/rki6isk4pqfe1rf82pjz.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654389/market/qzitk6acut8zj2es2qrt.webp",
+    ],
+    [
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654391/market/nbejyjjvherxuxagkuw4.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654462/market/rw05kozaajyb0ao5evkm.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654464/market/wkmmw2romw69zsxonyrx.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654466/market/alc9ymrwyrekucrs6ee8.webp",
+    ],
+    [
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654540/market/h4gdxr7y87bb5cmdoztd.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654542/market/q2ugvtf6olbfbfwly03f.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654544/market/itxqypzjy6ahs0iqxtyn.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654610/market/tgm6bxsbsylyr5r69enq.webp",
+    ],
+    [
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654612/market/dg5va8ncjrkqeexn83as.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654613/market/ugfqgnwvtyezkzdiyugu.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654675/market/povt8jqcexv4rjzfv8nt.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654677/market/v2xgvelvs0flfmof3dd8.webp",
+    ],
+    [
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654732/market/hbit1skxb5znxyvdsuri.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654734/market/kefhiacdwkebzfnkrkbp.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654735/market/libwbxqxfyhcrd7hg3cg.webp",
+      "https://res.cloudinary.com/due9a2put/image/upload/v1649654829/market/hrgqeqcicudnf1qmhpnn.webp",
+    ],
   ];
 
   for (let i = 0; i < 50; i++) {
+    const category_id = Math.floor(Math.random() * 7) + 1;
+    const imageNumber = Math.floor(Math.random() * 4);
     products.push({
       user_id: Math.floor(Math.random() * 10 + 1),
-      category_id: Math.floor(Math.random() * 7) + 1,
+      category_id: category_id,
       title: randProductName(),
       description: randProductDescription(),
       price: Math.floor(Math.random() * 1000 + 10),
       images: [
-        placeImgs[Math.floor(Math.random() * 5)],
-        placeImgs[Math.floor(Math.random() * 5)],
-        placeImgs[Math.floor(Math.random() * 5)],
+        placeImgs[category_id - 1][imageNumber],
+        placeImgs[category_id - 1][(imageNumber + 1) % 4],
+        placeImgs[category_id - 1][(imageNumber + 2) % 4],
       ],
       listed: randBetweenDate({ from: new Date("01/01/2022"), to: new Date() }),
       location: randCity(),
@@ -157,55 +196,6 @@ const seed = async (pool: Pool) => {
   );
   await pool.query(`CREATE INDEX message_sender_index ON message (sender)`);
   await pool.query(`CREATE INDEX message_receiver_index ON message (receiver)`);
-
-  const productQuery = await pool.query(
-    "SELECT user_id FROM product WHERE product_id = 29"
-  );
-  const authorId = productQuery.rows[0].user_id;
-
-  const userId = (authorId % 10) + 1;
-  for (let i = 0; i < 10; i++) {
-    const sender = Math.random() > 0.5 ? authorId : userId;
-    let receiver;
-    if (sender === authorId) {
-      receiver = userId;
-    } else {
-      receiver = authorId;
-    }
-    await pool.query(
-      `INSERT INTO message(product_id, sender, receiver, text, time)
-        VALUES ($1, $2, $3, $4, $5)`,
-      [
-        29,
-        sender,
-        receiver,
-        randTextRange({ min: 8, max: 128 }),
-        randBetweenDate({ from: new Date("01/01/2022"), to: new Date() }),
-      ]
-    );
-  }
-
-  const userId2 = ((authorId + 1) % 10) + 1;
-  for (let i = 0; i < 10; i++) {
-    const sender = Math.random() > 0.5 ? authorId : userId2;
-    let receiver;
-    if (sender === authorId) {
-      receiver = userId2;
-    } else {
-      receiver = authorId;
-    }
-    await pool.query(
-      `INSERT INTO message(product_id, sender, receiver, text, time)
-        VALUES ($1, $2, $3, $4, $5)`,
-      [
-        29,
-        sender,
-        receiver,
-        randTextRange({ min: 8, max: 128 }),
-        randBetweenDate({ from: new Date("01/01/2022"), to: new Date() }),
-      ]
-    );
-  }
 };
 
-export default seed;
+export default herokuSeed;
